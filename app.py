@@ -166,7 +166,7 @@ smartfin_graph = graph.compile()
 # STREAMLIT UI
 # -------------------------------
 st.set_page_config(page_title="SmartFin AI", layout="wide")
-st.title("💸 SmartFin – Conversational Advisor with Web Search")
+st.title(" SmartFin – Conversational Advisor with Web Search")
 
 with st.sidebar:
     st.header("📋 Your Profile")
@@ -190,7 +190,7 @@ if st.button("Generate Financial Plan"):
         }
         result = smartfin_graph.invoke(state)
 
-    st.subheader("📊 Financial Plan")
+    st.subheader(" Financial Plan")
     st.markdown(result["response"])
 
     st.subheader("📈 Growth Projection")
@@ -225,3 +225,4 @@ if st.button("Ask SmartFin"):
 
     st.session_state["chat_history"] = result["chat_history"]
     st.markdown(result["response"])
+
