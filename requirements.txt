@@ -4,3 +4,5 @@ langchain-openai
 openai
 matplotlib
 python-dotenv
+langchain_community
+langchain_tavily
