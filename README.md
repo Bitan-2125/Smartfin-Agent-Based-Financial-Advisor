@@ -122,7 +122,7 @@ This makes SmartFin suitable for **FinTech demos, research, and production proto
 ## 🧪 Tech Stack
 
 - **Frontend:** Streamlit  
-- **LLM Inference:** Groq (`gpt-oss-20b`)  
+- **LLM Inference:** Groq (`gpt-oss-120b`)  
 - **Agent Framework:** LangGraph  
 - **LLM Interface:** langchain-openai  
 - **Search Tool:** Tavily API  
