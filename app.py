@@ -1,19 +1,20 @@
+# ===============================
+# SMARTFIN AI – main.py
+# ===============================
+
 import os
 import streamlit as st
 import matplotlib.pyplot as plt
 from typing import TypedDict
-
 from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
-
 from langchain_tavily import TavilySearch
-
 from langgraph.graph import StateGraph, END
 
 # -------------------------------
-# ENV + LLM + Search SETUP
+# ENV SETUP
 # -------------------------------
 load_dotenv()
 
@@ -24,11 +25,10 @@ llm = ChatOpenAI(
     temperature=0.3,
 )
 
-tavily_tool = TavilySearch(
+search_tool = TavilySearch(
     api_key=os.getenv("TAVILY_API_KEY"),
     max_results=5,
     topic="finance",
-    search_depth="basic",
 )
 
 SYSTEM_PROMPT = """
@@ -37,32 +37,31 @@ You are SmartFin, a professional AI financial advisor.
 Rules:
 - Never promise guaranteed returns
 - Be conservative and realistic
-- Use online search results when relevant
-- Answer clearly and helpfully
+- Explain reasoning clearly
+- Use web search when relevant
 """
 
 # -------------------------------
-# FINANCIAL CALC TOOLS
+# FINANCE UTILS
 # -------------------------------
 def monthly_savings(income, expenses):
-    return income - expenses
+    return max(income - expenses, 0)
 
-def goal_timeline(goal_amount, monthly_saving, annual_return=0.10):
+def goal_timeline(goal, monthly, annual_return=0.10):
     r = annual_return / 12
-    balance = 0
-    months = 0
-    while balance < goal_amount and months < 600:
-        balance = balance * (1 + r) + monthly_saving
+    bal, months = 0, 0
+    while bal < goal and months < 600:
+        bal = bal * (1 + r) + monthly
         months += 1
     return months
 
 def sip_projection(monthly, months, annual_return=0.10):
     r = annual_return / 12
+    bal = 0
     values = []
-    balance = 0
     for _ in range(months):
-        balance = balance * (1 + r) + monthly
-        values.append(balance)
+        bal = bal * (1 + r) + monthly
+        values.append(bal)
     return values
 
 # -------------------------------
@@ -76,62 +75,61 @@ class FinanceState(TypedDict):
     risk: str
     monthly_saving: float
     months_to_goal: int
-    response: str
     growth: list
     chat_history: list
     user_query: str
+    response: str
     search_result: str
 
 # -------------------------------
 # LANGGRAPH NODES
 # -------------------------------
-def analyze_profile(state: FinanceState):
-    state["monthly_saving"] = monthly_savings(state["income"], state["expenses"])
+def analyze(state: FinanceState):
+    state["monthly_saving"] = monthly_savings(
+        state["income"], state["expenses"]
+    )
     return state
 
-def calculate_plan(state: FinanceState):
+def calculate(state: FinanceState):
     state["months_to_goal"] = goal_timeline(
         state["goal_amount"], state["monthly_saving"]
     )
     state["growth"] = sip_projection(
-        state["monthly_saving"], min(state["months_to_goal"], 360)
+        state["monthly_saving"],
+        min(state["months_to_goal"], 360)
     )
     return state
 
-def search_node(state: FinanceState):
-    qry = state.get("user_query", "")
-    if any(k in qry.lower() for k in ["stock", "invest", "market", "share", "news"]):
-        result = tavily_tool.run(qry)
-        # build a simple text summary of the search results
-        snippets = []
-        for item in result["results"]:
-            title = item.get("title", "")
-            content = item.get("content", "")
-            snippets.append(f"**{title}**: {content}")
-        state["search_result"] = "\n\n".join(snippets)
+def search(state: FinanceState):
+    q = state.get("user_query", "").lower()
+    if any(k in q for k in ["stock", "market", "invest", "share", "news"]):
+        result = search_tool.run(state["user_query"])
+        summaries = []
+        for r in result["results"]:
+            summaries.append(f"- {r['title']}: {r['content']}")
+        state["search_result"] = "\n".join(summaries)
     else:
         state["search_result"] = ""
     return state
 
-def advisor_node(state: FinanceState):
-    context = "\n".join(state.get("chat_history", []))
+def advisor(state: FinanceState):
     prompt = f"""
-Conversation:
-{context}
-
 User Profile:
 Age: {state['age']}
 Monthly Savings: {state['monthly_saving']}
-Goal: {state['goal_amount']}
-Risk: {state['risk']}
+Goal Amount: {state['goal_amount']}
+Risk Appetite: {state['risk']}
 
-Online Search (if any):
+Web Research:
 {state.get('search_result', '')}
+
+Conversation History:
+{state.get('chat_history', [])}
 
 User Query:
 {state.get('user_query', '')}
 
-Answer helpfully with clear reasoning.
+Give a clear, conservative financial response.
 """
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
@@ -139,20 +137,18 @@ Answer helpfully with clear reasoning.
     ]
     res = llm.invoke(messages)
     state["response"] = res.content
-    # store messages into history
-    state.setdefault("chat_history", []).append(f"User: {state.get('user_query','')}")
+    state.setdefault("chat_history", []).append(f"User: {state['user_query']}")
     state["chat_history"].append(f"AI: {res.content}")
     return state
 
 # -------------------------------
-# BUILD LANGGRAPH
+# GRAPH BUILD
 # -------------------------------
 graph = StateGraph(FinanceState)
-
-graph.add_node("analyze", analyze_profile)
-graph.add_node("calculate", calculate_plan)
-graph.add_node("search", search_node)
-graph.add_node("advisor", advisor_node)
+graph.add_node("analyze", analyze)
+graph.add_node("calculate", calculate)
+graph.add_node("search", search)
+graph.add_node("advisor", advisor)
 
 graph.set_entry_point("analyze")
 graph.add_edge("analyze", "calculate")
@@ -160,25 +156,94 @@ graph.add_edge("calculate", "search")
 graph.add_edge("search", "advisor")
 graph.add_edge("advisor", END)
 
-smartfin_graph = graph.compile()
+smartfin = graph.compile()
 
 # -------------------------------
-# STREAMLIT UI
+# STREAMLIT CONFIG
 # -------------------------------
-st.set_page_config(page_title="SmartFin AI", layout="wide")
-st.title(" SmartFin – Conversational Advisor with Web Search")
+st.set_page_config(
+    page_title="SmartFin AI",
+    page_icon="💸",
+    layout="wide"
+)
 
+# -------------------------------
+# PREMIUM UI CSS
+# -------------------------------
+st.markdown("""
+<style>
+.hero {
+  background: linear-gradient(135deg, #6C63FF, #8A85FF);
+  padding: 80px 50px;
+  border-radius: 24px;
+  color: white;
+  text-align: center;
+}
+.hero h1 { font-size: 56px; font-weight: 800; }
+.hero p { font-size: 20px; opacity: 0.95; }
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+  margin-top: 60px;
+}
+.feature-card {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 28px;
+  border-radius: 18px;
+  transition: 0.3s;
+}
+.feature-card:hover { transform: translateY(-6px); }
+.feature-icon { font-size: 36px; margin-bottom: 12px; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+  gap: 30px;
+  margin-top: 60px;
+  padding-top: 40px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# -------------------------------
+# SIDEBAR
+# -------------------------------
 with st.sidebar:
-    st.header("📋 Your Profile")
-    age = st.number_input("Age", 18, 65, value=22)
+    st.header("📋 Profile")
+    age = st.number_input("Age", 18, 65, 22)
     income = st.number_input("Monthly Income", value=50000)
     expenses = st.number_input("Monthly Expenses", value=30000)
     goal_amount = st.number_input("Goal Amount", value=500000)
     risk = st.selectbox("Risk Appetite", ["Low", "Medium", "High"])
 
-# INITIAL PLAN
-if st.button("Generate Financial Plan"):
-    with st.spinner("Calculating..."):
+# -------------------------------
+# LANDING
+# -------------------------------
+st.markdown("""
+<div class="hero">
+  <h1>SmartFin AI</h1>
+  <p>Your AI-Powered Financial Advisor</p>
+</div>
+
+<div class="feature-grid">
+  <div class="feature-card"><div class="feature-icon">🎯</div><h3>Goal Planning</h3><p>Personalized financial goals.</p></div>
+  <div class="feature-card"><div class="feature-icon">📈</div><h3>Projections</h3><p>Realistic long-term growth.</p></div>
+  <div class="feature-card"><div class="feature-icon">🔍</div><h3>Live Research</h3><p>Market insights via web.</p></div>
+  <div class="feature-card"><div class="feature-icon">🛡️</div><h3>Risk Aware</h3><p>Conservative advice.</p></div>
+</div>
+""", unsafe_allow_html=True)
+
+# -------------------------------
+# PLAN GENERATION
+# -------------------------------
+st.divider()
+if st.button("🚀 Generate Financial Plan", use_container_width=True):
+    with st.spinner("Analyzing your finances..."):
         state = {
             "age": age,
             "income": income,
@@ -186,43 +251,40 @@ if st.button("Generate Financial Plan"):
             "goal_amount": goal_amount,
             "risk": risk,
             "chat_history": [],
-            "user_query": "Generate plan"
+            "user_query": "Generate a financial plan"
         }
-        result = smartfin_graph.invoke(state)
+        result = smartfin.invoke(state)
 
-    st.subheader(" Financial Plan")
+    st.subheader("📊 Financial Plan")
     st.markdown(result["response"])
 
     st.subheader("📈 Growth Projection")
     fig, ax = plt.subplots()
     ax.plot(result["growth"])
     ax.set_xlabel("Months")
-    ax.set_ylabel("Projected Value")
+    ax.set_ylabel("Portfolio Value")
     st.pyplot(fig)
 
     st.session_state["chat_history"] = result["chat_history"]
 
-# FOLLOW-UP CHAT
-st.subheader("💬 Ask a Follow-Up Question")
-followup = st.text_input("Ask about investing, stocks, goals...")
+# -------------------------------
+# CHAT
+# -------------------------------
+st.subheader("💬 Ask SmartFin")
+q = st.text_input("Ask about investments, stocks, goals...")
 
-if st.button("Ask SmartFin"):
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = []
-
+if st.button("Ask"):
     state = {
         "age": age,
         "income": income,
         "expenses": expenses,
         "goal_amount": goal_amount,
         "risk": risk,
-        "chat_history": st.session_state["chat_history"],
-        "user_query": followup
+        "chat_history": st.session_state.get("chat_history", []),
+        "user_query": q
     }
-
     with st.spinner("Thinking..."):
-        result = smartfin_graph.invoke(state)
+        result = smartfin.invoke(state)
 
     st.session_state["chat_history"] = result["chat_history"]
     st.markdown(result["response"])
-
