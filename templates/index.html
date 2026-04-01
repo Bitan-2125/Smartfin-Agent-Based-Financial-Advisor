@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartFin — AI Financial Advisor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; }
+
+        /* NAV */
+        nav {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 40px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: #1a365d; }
+        .nav-brand .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #1a365d, #2b6cb0); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; }
+        .nav-tag { font-size: 0.72rem; background: #ebf8ff; color: #2b6cb0; padding: 2px 8px; border-radius: 20px; font-weight: 600; border: 1px solid #bee3f8; }
+
+        /* HERO */
+        .hero {
+            background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 60%, #3182ce 100%);
+            padding: 64px 40px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        .hero h1 { font-size: 2.4rem; font-weight: 700; color: #fff; margin-bottom: 10px; position: relative; }
+        .hero p { color: rgba(255,255,255,0.8); font-size: 1.05rem; position: relative; }
+        .hero-stats { display: flex; justify-content: center; gap: 40px; margin-top: 32px; position: relative; }
+        .hero-stat { text-align: center; }
+        .hero-stat .val { font-size: 1.4rem; font-weight: 700; color: #fff; }
+        .hero-stat .lbl { font-size: 0.75rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+
+        /* MAIN */
+        .main { max-width: 560px; margin: -28px auto 60px; padding: 0 20px; position: relative; z-index: 1; }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+            padding: 32px;
+        }
+        .card-title { font-size: 1rem; font-weight: 600; color: #1a365d; margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
+        .card-title span { width: 28px; height: 28px; background: #ebf8ff; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+
+        .field { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 5px; font-size: 0.8rem; font-weight: 600; color: #4a5568; text-transform: uppercase; letter-spacing: 0.04em; }
+        .input-wrap { position: relative; }
+        .input-prefix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #718096; font-size: 0.9rem; font-weight: 600; pointer-events: none; }
+        input, select {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            color: #1a202c;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            background: #f7fafc;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input.has-prefix { padding-left: 28px; }
+        input:focus, select:focus { outline: none; border-color: #2b6cb0; box-shadow: 0 0 0 3px rgba(43,108,176,0.12); background: #fff; }
+
+        .risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .risk-opt { display: none; }
+        .risk-label {
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 8px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #4a5568;
+            background: #f7fafc;
+            transition: all 0.15s;
+        }
+        .risk-opt:checked + .risk-label { border-color: #2b6cb0; background: #ebf8ff; color: #1a365d; font-weight: 600; }
+        .risk-label .risk-icon { font-size: 1.2rem; display: block; margin-bottom: 4px; }
+
+        .divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #1a365d, #2b6cb0);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: opacity 0.2s, transform 0.1s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .submit-btn:hover { opacity: 0.92; }
+        .submit-btn:active { transform: scale(0.99); }
+
+        .loading-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(255,255,255,0.85);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+        .spinner { width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top-color: #2b6cb0; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 0.95rem; color: #4a5568; font-weight: 500; }
+
+        .trust-row { display: flex; justify-content: center; gap: 20px; margin-top: 20px; }
+        .trust-item { font-size: 0.75rem; color: #718096; display: flex; align-items: center; gap: 4px; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-brand">
+        <div class="logo-icon">₹</div>
+        SmartFin AI
+    </div>
+    <span class="nav-tag">INDIA MARKET</span>
+</nav>
+
+<div class="hero">
+    <h1>Your AI Financial Advisor</h1>
+    <p>Personalized investment plans for the Indian market — PPF, SIP, NPS & more</p>
+    <div class="hero-stats">
+        <div class="hero-stat"><div class="val">Nifty 50</div><div class="lbl">~12% long-term CAGR</div></div>
+        <div class="hero-stat"><div class="val">PPF</div><div class="lbl">7.1% tax-free returns</div></div>
+        <div class="hero-stat"><div class="val">ELSS</div><div class="lbl">80C tax savings</div></div>
+    </div>
+</div>
+
+<div class="main">
+    <div class="card">
+        <div class="card-title"><span>📋</span> Your Financial Profile</div>
+        <form method="POST" action="/generate" onsubmit="showLoading()">
+            <div class="field">
+                <label>Age</label>
+                <input type="number" name="age" placeholder="e.g. 28" min="18" max="70" required>
+            </div>
+            <div class="field">
+                <label>Monthly Income</label>
+                <div class="input-wrap">
+                    <span class="input-prefix">₹</span>
+                    <input class="has-prefix" type="number" name="income" placeholder="e.g. 75,000" required>
+                </div>
+            </div>
+            <div class="field">
+                <label>Monthly Expenses</label>
+                <div class="input-wrap">
+                    <span class="input-prefix">₹</span>
+                    <input class="has-prefix" type="number" name="expenses" placeholder="e.g. 45,000" required>
+                </div>
+            </div>
+            <div class="field">
+                <label>Financial Goal</label>
+                <div class="input-wrap">
+                    <span class="input-prefix">₹</span>
+                    <input class="has-prefix" type="number" name="goal" placeholder="e.g. 1,00,00,000" required>
+                </div>
+            </div>
+            <div class="field">
+                <label>Risk Tolerance</label>
+                <div class="risk-grid">
+                    <div>
+                        <input class="risk-opt" type="radio" name="risk" id="r-low" value="Low" checked>
+                        <label class="risk-label" for="r-low"><span class="risk-icon">🛡️</span>Low</label>
+                    </div>
+                    <div>
+                        <input class="risk-opt" type="radio" name="risk" id="r-med" value="Medium">
+                        <label class="risk-label" for="r-med"><span class="risk-icon">⚖️</span>Medium</label>
+                    </div>
+                    <div>
+                        <input class="risk-opt" type="radio" name="risk" id="r-high" value="High">
+                        <label class="risk-label" for="r-high"><span class="risk-icon">🚀</span>High</label>
+                    </div>
+                </div>
+            </div>
+            <hr class="divider">
+            <button type="submit" class="submit-btn">Generate My Financial Plan →</button>
+        </form>
+        <div class="trust-row">
+            <span class="trust-item">🔒 Private & Secure</span>
+            <span class="trust-item">🇮🇳 India-focused</span>
+            <span class="trust-item">⚡ AI-powered</span>
+        </div>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Generating your personalized plan...</div>
+</div>
+
+<script>
+function showLoading() {
+    const o = document.getElementById("loadingOverlay");
+    o.style.display = "flex";
+}
+</script>
+</body>
+</html>

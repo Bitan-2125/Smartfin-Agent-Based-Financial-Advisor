@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartFin — Your Financial Plan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; }
+
+        /* NAV */
+        nav {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky; top: 0; z-index: 50;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; color: #1a365d; }
+        .nav-logo { width: 32px; height: 32px; background: linear-gradient(135deg, #1a365d, #2b6cb0); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; }
+        .nav-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-outline {
+            padding: 7px 16px; border: 1.5px solid #2b6cb0; border-radius: 8px;
+            color: #2b6cb0; font-size: 0.85rem; font-weight: 600; text-decoration: none;
+            font-family: 'Inter', sans-serif; cursor: pointer; background: transparent;
+            transition: all 0.15s;
+        }
+        .btn-outline:hover { background: #ebf8ff; }
+        .btn-primary {
+            padding: 7px 16px; background: linear-gradient(135deg, #1a365d, #2b6cb0);
+            border: none; border-radius: 8px; color: white; font-size: 0.85rem;
+            font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+            display: flex; align-items: center; gap: 6px; transition: opacity 0.15s;
+        }
+        .btn-primary:hover { opacity: 0.88; }
+
+        /* HEADER BAND */
+        .header-band {
+            background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
+            padding: 28px 32px;
+            color: white;
+        }
+        .header-band h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+        .header-band p { font-size: 0.85rem; opacity: 0.75; }
+
+        /* PROFILE STRIP */
+        .profile-strip {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 14px 32px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .badge {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-size: 0.78rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+        .badge strong { color: #1a365d; }
+
+        /* LAYOUT */
+        .container { max-width: 900px; margin: 28px auto 60px; padding: 0 20px; }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 28px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #f0f4f8;
+        }
+        .card-title { font-size: 0.95rem; font-weight: 700; color: #1a365d; display: flex; align-items: center; gap: 8px; }
+        .card-icon { width: 30px; height: 30px; background: #ebf8ff; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+
+        /* PLAN CONTENT */
+        .plan-content h1, .plan-content h2, .plan-content h3 { color: #1a365d; margin: 18px 0 8px; font-weight: 700; }
+        .plan-content h1 { font-size: 1.2rem; }
+        .plan-content h2 { font-size: 1.05rem; border-left: 3px solid #2b6cb0; padding-left: 10px; }
+        .plan-content h3 { font-size: 0.95rem; color: #2b6cb0; }
+        .plan-content p { line-height: 1.75; margin-bottom: 12px; color: #2d3748; font-size: 0.92rem; }
+        .plan-content ul, .plan-content ol { padding-left: 20px; margin-bottom: 12px; }
+        .plan-content li { line-height: 1.75; color: #2d3748; margin-bottom: 3px; font-size: 0.92rem; }
+        .plan-content strong { color: #1a365d; }
+        .plan-content hr { border: none; border-top: 1px solid #e2e8f0; margin: 16px 0; }
+        .plan-content table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.88rem; }
+        .plan-content th { background: #1a365d; color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; }
+        .plan-content td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; color: #2d3748; }
+        .plan-content tr:nth-child(even) td { background: #f7fafc; }
+        .plan-content tr:hover td { background: #ebf8ff; }
+
+        /* GRAPH */
+        .graph-img { width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; }
+
+        /* CHAT */
+        .chat-messages {
+            max-height: 400px; overflow-y: auto;
+            margin-bottom: 16px;
+            display: flex; flex-direction: column; gap: 12px;
+            padding-right: 4px;
+        }
+        .chat-messages::-webkit-scrollbar { width: 4px; }
+        .chat-messages::-webkit-scrollbar-track { background: #f0f4f8; border-radius: 4px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+        .msg { padding: 12px 16px; border-radius: 10px; line-height: 1.65; font-size: 0.9rem; max-width: 88%; }
+        .msg.user { background: linear-gradient(135deg, #1a365d, #2b6cb0); color: white; align-self: flex-end; border-bottom-right-radius: 3px; }
+        .msg.bot { background: #f7fafc; border: 1px solid #e2e8f0; color: #2d3748; align-self: flex-start; border-bottom-left-radius: 3px; }
+        .msg.bot table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.84rem; }
+        .msg.bot th { background: #1a365d; color: white; padding: 7px 10px; text-align: left; }
+        .msg.bot td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; }
+        .msg.typing { color: #a0aec0; font-style: italic; font-size: 0.85rem; }
+        .chat-input-row { display: flex; gap: 10px; }
+        .chat-input-row input {
+            flex: 1; padding: 11px 14px;
+            border: 1.5px solid #e2e8f0; border-radius: 8px;
+            color: #1a202c; font-size: 0.92rem; font-family: 'Inter', sans-serif;
+            background: #f7fafc; transition: border-color 0.2s;
+        }
+        .chat-input-row input:focus { outline: none; border-color: #2b6cb0; background: #fff; }
+        .chat-input-row button {
+            padding: 11px 20px; background: linear-gradient(135deg, #1a365d, #2b6cb0);
+            color: white; border: none; border-radius: 8px; cursor: pointer;
+            font-size: 0.9rem; font-weight: 600; font-family: 'Inter', sans-serif;
+            white-space: nowrap; transition: opacity 0.15s;
+        }
+        .chat-input-row button:hover { opacity: 0.88; }
+        .chat-input-row button:disabled { background: #cbd5e0; cursor: not-allowed; }
+
+        /* PDF loading */
+        .pdf-spinner { display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-brand">
+        <div class="nav-logo">₹</div>
+        SmartFin AI
+    </div>
+    <div class="nav-actions">
+        <a href="/" class="btn-outline">← New Plan</a>
+        <button class="btn-primary" onclick="downloadPDF()" id="pdfBtn">
+            <span id="pdfBtnText">⬇ Download PDF</span>
+            <div class="pdf-spinner" id="pdfSpinner"></div>
+        </button>
+    </div>
+</nav>
+
+<div class="header-band">
+    <h1>Your Personalized Financial Plan</h1>
+    <p>AI-generated roadmap tailored to your profile and the Indian market</p>
+</div>
+
+<div class="profile-strip">
+    <div class="badge">Age <strong>{{ profile.age }} yrs</strong></div>
+    <div class="badge">Income <strong>₹{{ "{:,.0f}".format(profile.income) }}/mo</strong></div>
+    <div class="badge">Expenses <strong>₹{{ "{:,.0f}".format(profile.expenses) }}/mo</strong></div>
+    <div class="badge">Monthly Savings <strong>₹{{ "{:,.0f}".format(profile.income - profile.expenses) }}/mo</strong></div>
+    <div class="badge">Goal <strong>₹{{ "{:,.0f}".format(profile.goal_amount) }}</strong></div>
+    <div class="badge">Risk <strong>{{ profile.risk }}</strong></div>
+</div>
+
+<div class="container" id="reportContent">
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><div class="card-icon">📄</div> Financial Plan</div>
+        </div>
+        <div class="plan-content" id="planContent"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><div class="card-icon">📈</div> Portfolio Growth Projection</div>
+        </div>
+        <img class="graph-img" src="data:image/png;base64,{{ graph }}" alt="Growth chart">
+    </div>
+
+</div>
+
+<!-- Chat outside report so it's not in PDF -->
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><div class="card-icon">💬</div> Ask SmartFin</div>
+            <span style="font-size:0.78rem;color:#718096;">Based on your profile above</span>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-row">
+            <input type="text" id="queryInput" placeholder="e.g. How much should I put in PPF vs ELSS?" onkeydown="if(event.key==='Enter') sendChat()">
+            <button id="sendBtn" onclick="sendChat()">Ask →</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+    // Render plan markdown as HTML
+    const rawPlan = {{ response | tojson }};
+    document.getElementById("planContent").innerHTML = marked.parse(rawPlan);
+
+    // PDF Download
+    async function downloadPDF() {
+        const btn = document.getElementById("pdfBtn");
+        const btnText = document.getElementById("pdfBtnText");
+        const spinner = document.getElementById("pdfSpinner");
+
+        btnText.textContent = "Generating...";
+        spinner.style.display = "block";
+        btn.disabled = true;
+
+        try {
+            const { jsPDF } = window.jspdf;
+            const el = document.getElementById("reportContent");
+
+            const canvas = await html2canvas(el, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: "#f0f4f8",
+                logging: false
+            });
+
+            const imgData = canvas.toDataURL("image/png");
+            const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const margin = 10;
+            const imgW = pageW - margin * 2;
+            const imgH = (canvas.height * imgW) / canvas.width;
+
+            let y = margin;
+            let remaining = imgH;
+
+            // Add header
+            pdf.setFillColor(26, 54, 93);
+            pdf.rect(0, 0, pageW, 14, "F");
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(10);
+            pdf.setFont("helvetica", "bold");
+            pdf.text("SmartFin AI — Financial Plan", margin, 9);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(8);
+            pdf.text("Generated on " + new Date().toLocaleDateString("en-IN"), pageW - margin, 9, { align: "right" });
+
+            y = 18;
+
+            // Paginate image
+            while (remaining > 0) {
+                const sliceH = Math.min(remaining, pageH - y - margin);
+                const srcY = (imgH - remaining) * (canvas.height / imgH);
+                const srcH = sliceH * (canvas.height / imgH);
+
+                const sliceCanvas = document.createElement("canvas");
+                sliceCanvas.width = canvas.width;
+                sliceCanvas.height = srcH;
+                const ctx = sliceCanvas.getContext("2d");
+                ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+
+                pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", margin, y, imgW, sliceH);
+                remaining -= sliceH;
+
+                if (remaining > 0) {
+                    pdf.addPage();
+                    // header on new page
+                    pdf.setFillColor(26, 54, 93);
+                    pdf.rect(0, 0, pageW, 14, "F");
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFontSize(10);
+                    pdf.setFont("helvetica", "bold");
+                    pdf.text("SmartFin AI — Financial Plan", margin, 9);
+                    y = 18;
+                }
+            }
+
+            pdf.save("SmartFin_Financial_Plan.pdf");
+        } catch(e) {
+            alert("PDF generation failed. Please try again.");
+            console.error(e);
+        }
+
+        btnText.textContent = "⬇ Download PDF";
+        spinner.style.display = "none";
+        btn.disabled = false;
+    }
+
+    // Chat
+    async function sendChat() {
+        const input = document.getElementById("queryInput");
+        const query = input.value.trim();
+        if (!query) return;
+
+        const messages = document.getElementById("chatMessages");
+        const btn = document.getElementById("sendBtn");
+
+        messages.innerHTML += `<div class="msg user">${escapeHtml(query)}</div>`;
+        input.value = "";
+        btn.disabled = true;
+
+        const typingId = "t" + Date.now();
+        messages.innerHTML += `<div class="msg bot typing" id="${typingId}">SmartFin is thinking...</div>`;
+        messages.scrollTop = messages.scrollHeight;
+
+        try {
+            const res = await fetch("/chat", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ query })
+            });
+            const data = await res.json();
+            document.getElementById(typingId).remove();
+            const div = document.createElement("div");
+            div.className = "msg bot";
+            div.innerHTML = marked.parse(data.response);
+            messages.appendChild(div);
+        } catch(e) {
+            document.getElementById(typingId).remove();
+            messages.innerHTML += `<div class="msg bot" style="color:#e53e3e">Error. Please try again.</div>`;
+        }
+
+        btn.disabled = false;
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function escapeHtml(t) {
+        return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+</script>
+</body>
+</html>
