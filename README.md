@@ -10,7 +10,7 @@ Unlike traditional chatbots, SmartFin uses a **deterministic agent architecture*
 ## 🚀 Live Application
 
 🔗 **App Link:**  
-👉 https://smartfin-agent-based-financial-advisor-bitan.streamlit.app/  
+👉 https://smartfin-agent-based-financial-advisor.onrender.com/ 
 
 
 ---
