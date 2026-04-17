@@ -200,17 +200,36 @@
                 <div class="risk-grid">
                     <div>
                         <input class="risk-opt" type="radio" name="risk" id="r-low" value="Low" checked>
-                        <label class="risk-label" for="r-low"><span class="risk-icon">🛡️</span>Low</label>
+                        <label class="risk-label" for="r-low">Low</label>
                     </div>
                     <div>
                         <input class="risk-opt" type="radio" name="risk" id="r-med" value="Medium">
-                        <label class="risk-label" for="r-med"><span class="risk-icon">⚖️</span>Medium</label>
+                        <label class="risk-label" for="r-med">Medium</label>
                     </div>
                     <div>
                         <input class="risk-opt" type="radio" name="risk" id="r-high" value="High">
-                        <label class="risk-label" for="r-high"><span class="risk-icon">🚀</span>High</label>
+                        <label class="risk-label" for="r-high">High</label>
                     </div>
                 </div>
+            </div>
+            <hr class="divider">
+            <div class="field">
+                <label>Dependents</label>
+                <select name="dependents">
+                    <option value="0">None</option>
+                    <option value="1">1 (spouse or parent)</option>
+                    <option value="2">2</option>
+                    <option value="3">3+</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Existing Insurance Cover</label>
+                <select name="has_insurance">
+                    <option value="none">No insurance at all</option>
+                    <option value="health_only">Health insurance only</option>
+                    <option value="life_only">Life insurance only</option>
+                    <option value="both">Both life &amp; health</option>
+                </select>
             </div>
             <hr class="divider">
             <button type="submit" class="submit-btn">Generate My Financial Plan →</button>

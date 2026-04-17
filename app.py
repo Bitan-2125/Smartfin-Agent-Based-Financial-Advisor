@@ -294,6 +294,94 @@ def make_allocation_chart(allocation):
     return base64.b64encode(buf.getvalue()).decode()
 
 
+def insurance_guidance(income, age, dependents, has_insurance):
+    """
+    Compute insurance recommendations using Indian market rules of thumb.
+    - Life cover: 10-15x annual income (higher multiplier for more dependents / younger age)
+    - Health cover: ₹5L base, +₹2L per dependent, +₹5L if age > 45
+    - Term plan premium estimate: ~0.3-0.5% of sum assured per year
+    """
+    annual = income * 12
+    dep = int(dependents)
+
+    # Life cover multiplier
+    if dep == 0:
+        multiplier = 10
+    elif dep <= 2:
+        multiplier = 12
+    else:
+        multiplier = 15
+
+    # Reduce multiplier if already has life cover
+    if has_insurance in ("life_only", "both"):
+        multiplier = max(0, multiplier - 5)
+
+    recommended_life = annual * multiplier
+
+    # Health cover
+    base_health = 500000
+    health_cover = base_health + (dep * 200000)
+    if age > 45:
+        health_cover += 500000
+    if has_insurance in ("health_only", "both"):
+        health_cover = max(0, health_cover - 500000)  # already have base
+
+    # Term plan annual premium estimate (~0.4% of SA for 30s, ~0.6% for 40s)
+    premium_rate = 0.004 if age < 40 else 0.006
+    term_premium = recommended_life * premium_rate if recommended_life > 0 else 0
+
+    gaps = []
+    if has_insurance == "none":
+        gaps.append("No life or health cover — high financial risk for dependents")
+    if has_insurance == "health_only":
+        gaps.append("No life/term cover — income replacement risk")
+    if has_insurance == "life_only":
+        gaps.append("No health cover — medical costs can erode savings quickly")
+    if dep > 0 and has_insurance in ("none", "health_only"):
+        gaps.append(f"You have {dep} dependent(s) with no life cover")
+
+    return {
+        "recommended_life_cover": round(recommended_life),
+        "recommended_health_cover": round(health_cover),
+        "estimated_term_premium": round(term_premium),
+        "gaps": gaps,
+        "has_insurance": has_insurance,
+        "dependents": dep,
+        "needs_life": has_insurance in ("none", "health_only"),
+        "needs_health": has_insurance in ("none", "life_only"),
+    }
+
+
+
+    """Render portfolio allocation pie chart, return base64 PNG."""
+    labels = list(allocation.keys())
+    sizes  = list(allocation.values())
+    colors = ["#2b6cb0", "#38a169", "#d69e2e", "#e53e3e", "#805ad5"]
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    wedges, texts, autotexts = ax.pie(
+        sizes, labels=labels, autopct="%1.0f%%",
+        colors=colors, startangle=140,
+        wedgeprops={"edgecolor": "white", "linewidth": 2},
+        textprops={"fontsize": 9, "color": "#2d3748"}
+    )
+    for at in autotexts:
+        at.set_color("white")
+        at.set_fontweight("bold")
+        at.set_fontsize(8)
+
+    ax.set_title("Recommended Portfolio Allocation", fontsize=12,
+                 fontweight="bold", color="#1a365d", pad=14)
+    fig.patch.set_facecolor("#ffffff")
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches="tight", dpi=130)
+    plt.close()
+    buf.seek(0)
+    return base64.b64encode(buf.getvalue()).decode()
+
+
 @app.route("/generate", methods=["POST"])
 def generate():
     data = request.form
@@ -309,6 +397,8 @@ def generate():
         "expenses": float(data["expenses"]),
         "goal_amount": float(data["goal"]),
         "risk": data["risk"],
+        "dependents": int(data.get("dependents", 0)),
+        "has_insurance": data.get("has_insurance", "none"),
     }
     session["profile"] = profile
 
@@ -342,12 +432,15 @@ def generate():
     img.seek(0)
     graph_url = base64.b64encode(img.getvalue()).decode()
 
-    # Allocation chart + tax estimate
+    # Allocation chart + tax estimate + insurance
     allocation = allocation_for_risk(profile["risk"])
     alloc_chart = make_allocation_chart(allocation)
     tax = tax_estimate(profile["income"], profile["risk"])
+    insurance = insurance_guidance(
+        profile["income"], profile["age"],
+        profile["dependents"], profile["has_insurance"]
+    )
 
-    # Store large data server-side; only a small token goes in the cookie
     token = str(uuid.uuid4())
     _result_store[token] = {
         "response": result["response"],
@@ -355,6 +448,7 @@ def generate():
         "alloc_chart": alloc_chart,
         "allocation": allocation,
         "tax": tax,
+        "insurance": insurance,
         "profile": profile,
     }
     session["token"] = token
@@ -373,6 +467,7 @@ def result_page():
         alloc_chart=d["alloc_chart"],
         allocation=d["allocation"],
         tax=d["tax"],
+        insurance=d["insurance"],
         profile=d["profile"]
     )
 

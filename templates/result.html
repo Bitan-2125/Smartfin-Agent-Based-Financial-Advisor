@@ -125,7 +125,19 @@
         .deduction-row .d-label { color: #4a5568; }
         .deduction-row .d-val { font-weight: 600; color: #1a365d; }
 
-        /* CHAT */
+        /* INSURANCE */
+        .ins-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        @media (max-width: 600px) { .ins-grid { grid-template-columns: 1fr 1fr; } }
+        .ins-stat { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
+        .ins-stat .is-label { font-size: 0.75rem; color: #718096; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+        .ins-stat .is-value { font-size: 1.1rem; font-weight: 700; color: #1a365d; }
+        .ins-stat .is-sub { font-size: 0.75rem; color: #718096; margin-top: 2px; }
+        .gap-alert { display: flex; align-items: flex-start; gap: 10px; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 0.85rem; color: #c53030; }
+        .gap-alert:last-child { margin-bottom: 0; }
+        .ins-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 16px; }
+        .ins-product { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 12px 14px; }
+        .ins-product .ip-name { font-size: 0.85rem; font-weight: 700; color: #276749; margin-bottom: 3px; }
+        .ins-product .ip-desc { font-size: 0.78rem; color: #4a5568; line-height: 1.5; }        /* CHAT */
         .chat-messages {
             max-height: 400px; overflow-y: auto;
             margin-bottom: 16px;
@@ -276,6 +288,72 @@
             <div class="deduction-row"><span class="d-label">Section 80CCD(1B) — NPS</span><span class="d-val">₹{{ "{:,.0f}".format(tax.deduction_nps) }}</span></div>
         </div>
         <p style="font-size:0.75rem;color:#a0aec0;margin-top:12px;">* Estimates only. Consult a CA for accurate tax planning.</p>
+    </div>
+
+    <!-- Insurance Guidance -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><div class="card-icon">🛡️</div> Insurance Guidance</div>
+            {% if insurance.gaps %}
+            <span style="background:#fff5f5;color:#c53030;border:1px solid #fed7d7;border-radius:20px;padding:4px 12px;font-size:0.75rem;font-weight:700;">
+                {{ insurance.gaps|length }} Gap{{ 's' if insurance.gaps|length > 1 }}
+            </span>
+            {% else %}
+            <span style="background:#c6f6d5;color:#276749;border-radius:20px;padding:4px 12px;font-size:0.75rem;font-weight:700;">✓ Covered</span>
+            {% endif %}
+        </div>
+
+        <div class="ins-grid">
+            <div class="ins-stat">
+                <div class="is-label">Recommended Life Cover</div>
+                <div class="is-value">₹{{ "{:,.0f}".format(insurance.recommended_life_cover) }}</div>
+                <div class="is-sub">10x – 15x of annual income</div>
+            </div>
+            <div class="ins-stat">
+                <div class="is-label">Recommended Health Cover</div>
+                <div class="is-value">₹{{ "{:,.0f}".format(insurance.recommended_health_cover) }}</div>
+                <div class="is-sub">Base + ₹2L per dependent</div>
+            </div>
+            <div class="ins-stat">
+                <div class="is-label">Est. Term Plan Premium</div>
+                <div class="is-value">₹{{ "{:,.0f}".format(insurance.estimated_term_premium) }}/yr</div>
+                <div class="is-sub">~{{ "0.4" if profile.age < 40 else "0.6" }}% of sum assured</div>
+            </div>
+        </div>
+
+        {% if insurance.gaps %}
+        <div style="margin-bottom:16px;">
+            <div style="font-size:0.8rem;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Coverage Gaps</div>
+            {% for gap in insurance.gaps %}
+            <div class="gap-alert">⚠ {{ gap }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div style="font-size:0.8rem;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Recommended Products</div>
+        <div class="ins-products">
+            {% if insurance.needs_life %}
+            <div class="ins-product">
+                <div class="ip-name">Term Life Insurance</div>
+                <div class="ip-desc">Pure protection, low premium. LIC Tech Term, HDFC Click2Protect, ICICI iProtect Smart.</div>
+            </div>
+            {% endif %}
+            {% if insurance.needs_health %}
+            <div class="ins-product">
+                <div class="ip-name">Health / Mediclaim</div>
+                <div class="ip-desc">Star Health, Niva Bupa, HDFC Ergo Optima. Min ₹5L cover recommended.</div>
+            </div>
+            {% endif %}
+            <div class="ins-product">
+                <div class="ip-name">Critical Illness Rider</div>
+                <div class="ip-desc">Covers 30+ illnesses. Add as rider to term plan or buy standalone.</div>
+            </div>
+            <div class="ins-product">
+                <div class="ip-name">Personal Accident Cover</div>
+                <div class="ip-desc">Low cost, high cover. Covers disability & accidental death. ~₹500/yr for ₹25L cover.</div>
+            </div>
+        </div>
+        <p style="font-size:0.75rem;color:#a0aec0;margin-top:14px;">* Coverage amounts are estimates based on income multiples. Consult an insurance advisor for exact needs.</p>
     </div>
 
 </div>
