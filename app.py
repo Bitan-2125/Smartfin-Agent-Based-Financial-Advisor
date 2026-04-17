@@ -22,7 +22,7 @@ from langgraph.graph import StateGraph, END
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(16)
+app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(16))
 
 # Server-side store to avoid oversized session cookies
 _result_store = {}
@@ -156,28 +156,171 @@ smartfin = graph.compile()
 # -----------------------
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("landing.html")
+
+@app.route("/plan")
+def plan():
+    return render_template("index.html", errors={}, values={})
+
+# -----------------------
+# HELPERS
+# -----------------------
+def validate_profile(data):
+    errors = {}
+    try:
+        age = int(data.get("age", 0))
+        if not (18 <= age <= 80):
+            errors["age"] = "Age must be between 18 and 80."
+    except ValueError:
+        errors["age"] = "Enter a valid age."
+
+    try:
+        income = float(data.get("income", 0))
+        if income <= 0:
+            errors["income"] = "Income must be greater than 0."
+    except ValueError:
+        errors["income"] = "Enter a valid income."
+
+    try:
+        expenses = float(data.get("expenses", 0))
+        if expenses < 0:
+            errors["expenses"] = "Expenses cannot be negative."
+    except ValueError:
+        errors["expenses"] = "Enter valid expenses."
+
+    if "income" not in errors and "expenses" not in errors:
+        if float(data.get("expenses", 0)) >= float(data.get("income", 0)):
+            errors["expenses"] = "Expenses must be less than income to have savings."
+
+    try:
+        goal = float(data.get("goal", 0))
+        if goal <= 0:
+            errors["goal"] = "Goal amount must be greater than 0."
+    except ValueError:
+        errors["goal"] = "Enter a valid goal amount."
+
+    return errors
+
+
+def allocation_for_risk(risk):
+    """Return portfolio allocation percentages based on risk profile."""
+    if risk == "Low":
+        return {"PPF/FD/Debt": 45, "ELSS/Equity MF": 20, "NPS": 15, "Gold/SGB": 10, "Emergency Fund": 10}
+    elif risk == "Medium":
+        return {"ELSS/Equity MF": 40, "PPF/FD/Debt": 25, "NPS": 15, "Gold/SGB": 10, "Emergency Fund": 10}
+    else:  # High
+        return {"Direct Equity/MF": 55, "ELSS": 20, "NPS": 10, "Gold/SGB": 10, "Emergency Fund": 5}
+
+
+def tax_estimate(income, risk):
+    """Compute basic tax estimates: old vs new regime, 80C savings."""
+    annual = income * 12
+
+    # New regime slabs (FY 2024-25)
+    def new_regime_tax(inc):
+        slabs = [(300000, 0), (300000, 0.05), (300000, 0.10),
+                 (300000, 0.15), (300000, 0.20), (float('inf'), 0.30)]
+        tax, remaining = 0, inc
+        for slab, rate in slabs:
+            taxable = min(remaining, slab)
+            tax += taxable * rate
+            remaining -= taxable
+            if remaining <= 0:
+                break
+        return max(0, tax - 25000)  # standard rebate u/s 87A up to ₹25k
+
+    # Old regime slabs
+    def old_regime_tax(inc):
+        slabs = [(250000, 0), (250000, 0.05), (500000, 0.20), (float('inf'), 0.30)]
+        tax, remaining = 0, inc
+        for slab, rate in slabs:
+            taxable = min(remaining, slab)
+            tax += taxable * rate
+            remaining -= taxable
+            if remaining <= 0:
+                break
+        return max(0, tax - 12500)  # rebate u/s 87A
+
+    deduction_80c = min(150000, annual * 0.20)   # assume 20% of income goes to 80C
+    deduction_80d = 25000                          # standard health insurance
+    deduction_nps = 50000                          # 80CCD(1B)
+    total_deductions = deduction_80c + deduction_80d + deduction_nps
+
+    new_tax = new_regime_tax(annual)
+    old_tax_before = old_regime_tax(annual)
+    old_tax_after  = old_regime_tax(max(0, annual - total_deductions))
+    tax_saved = old_tax_before - old_tax_after
+
+    return {
+        "annual_income": annual,
+        "new_regime_tax": round(new_tax),
+        "old_regime_tax_before": round(old_tax_before),
+        "old_regime_tax_after": round(old_tax_after),
+        "tax_saved_deductions": round(tax_saved),
+        "deduction_80c": round(deduction_80c),
+        "deduction_80d": deduction_80d,
+        "deduction_nps": deduction_nps,
+        "better_regime": "New" if new_tax < old_tax_after else "Old",
+    }
+
+
+def make_allocation_chart(allocation):
+    """Render portfolio allocation pie chart, return base64 PNG."""
+    labels = list(allocation.keys())
+    sizes  = list(allocation.values())
+    colors = ["#2b6cb0", "#38a169", "#d69e2e", "#e53e3e", "#805ad5"]
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    wedges, texts, autotexts = ax.pie(
+        sizes, labels=labels, autopct="%1.0f%%",
+        colors=colors, startangle=140,
+        wedgeprops={"edgecolor": "white", "linewidth": 2},
+        textprops={"fontsize": 9, "color": "#2d3748"}
+    )
+    for at in autotexts:
+        at.set_color("white")
+        at.set_fontweight("bold")
+        at.set_fontsize(8)
+
+    ax.set_title("Recommended Portfolio Allocation", fontsize=12,
+                 fontweight="bold", color="#1a365d", pad=14)
+    fig.patch.set_facecolor("#ffffff")
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches="tight", dpi=130)
+    plt.close()
+    buf.seek(0)
+    return base64.b64encode(buf.getvalue()).decode()
+
 
 @app.route("/generate", methods=["POST"])
 def generate():
     data = request.form
 
-    session["profile"] = {
+    # --- Input validation ---
+    errors = validate_profile(data)
+    if errors:
+        return render_template("index.html", errors=errors, values=data)
+
+    profile = {
         "age": int(data["age"]),
         "income": float(data["income"]),
         "expenses": float(data["expenses"]),
         "goal_amount": float(data["goal"]),
         "risk": data["risk"],
     }
+    session["profile"] = profile
 
     state = {
-        **session["profile"],
+        **profile,
         "chat_history": [],
         "user_query": "Generate a detailed financial plan"
     }
 
     result = smartfin.invoke(state)
 
+    # Growth chart
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(result["growth"], color="#2b6cb0", linewidth=2.5)
     ax.fill_between(range(len(result["growth"])), result["growth"], alpha=0.1, color="#2b6cb0")
@@ -199,12 +342,20 @@ def generate():
     img.seek(0)
     graph_url = base64.b64encode(img.getvalue()).decode()
 
+    # Allocation chart + tax estimate
+    allocation = allocation_for_risk(profile["risk"])
+    alloc_chart = make_allocation_chart(allocation)
+    tax = tax_estimate(profile["income"], profile["risk"])
+
     # Store large data server-side; only a small token goes in the cookie
     token = str(uuid.uuid4())
     _result_store[token] = {
         "response": result["response"],
         "graph": graph_url,
-        "profile": session["profile"],
+        "alloc_chart": alloc_chart,
+        "allocation": allocation,
+        "tax": tax,
+        "profile": profile,
     }
     session["token"] = token
 
@@ -215,11 +366,14 @@ def result_page():
     token = session.get("token")
     if not token or token not in _result_store:
         return redirect(url_for("home"))
-    data = _result_store[token]
+    d = _result_store[token]
     return render_template("result.html",
-        response=data["response"],
-        graph=data["graph"],
-        profile=data["profile"]
+        response=d["response"],
+        graph=d["graph"],
+        alloc_chart=d["alloc_chart"],
+        allocation=d["allocation"],
+        tax=d["tax"],
+        profile=d["profile"]
     )
 
 @app.route("/chat", methods=["POST"])

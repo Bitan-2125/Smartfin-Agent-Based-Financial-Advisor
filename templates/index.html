@@ -72,6 +72,8 @@
         }
         input.has-prefix { padding-left: 28px; }
         input:focus, select:focus { outline: none; border-color: #2b6cb0; box-shadow: 0 0 0 3px rgba(43,108,176,0.12); background: #fff; }
+        input.error, select.error { border-color: #e53e3e; background: #fff5f5; }
+        .err-msg { color: #e53e3e; font-size: 0.78rem; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
 
         .risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .risk-opt { display: none; }
@@ -131,8 +133,16 @@
 
 <nav>
     <div class="nav-brand">
-        <div class="logo-icon">₹</div>
-        SmartFin AI
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+            <svg width="34" height="34" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="38" height="38" rx="10" fill="url(#nlg)"/>
+                <defs><linearGradient id="nlg" x1="0" y1="0" x2="38" y2="38"><stop offset="0%" stop-color="#1a365d"/><stop offset="100%" stop-color="#3182ce"/></linearGradient></defs>
+                <text x="7" y="27" font-family="Arial" font-size="20" font-weight="900" fill="white">₹</text>
+                <polyline points="6,30 14,22 20,26 32,12" stroke="#90cdf4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="32" cy="12" r="2.5" fill="#68d391"/>
+            </svg>
+            <span style="font-weight:800;font-size:1.1rem;color:#1a365d;letter-spacing:-0.02em;">Smart<span style="color:#3182ce;">Fin</span></span>
+        </a>
     </div>
     <span class="nav-tag">INDIA MARKET</span>
 </nav>
@@ -153,28 +163,37 @@
         <form method="POST" action="/generate" onsubmit="showLoading()">
             <div class="field">
                 <label>Age</label>
-                <input type="number" name="age" placeholder="e.g. 28" min="18" max="70" required>
+                <input type="number" name="age" placeholder="e.g. 28" min="18" max="80"
+                    value="{{ values.get('age', '') }}"
+                    class="{{ 'error' if errors.get('age') }}" required>
+                {% if errors.get('age') %}<div class="err-msg">⚠ {{ errors.age }}</div>{% endif %}
             </div>
             <div class="field">
                 <label>Monthly Income</label>
                 <div class="input-wrap">
                     <span class="input-prefix">₹</span>
-                    <input class="has-prefix" type="number" name="income" placeholder="e.g. 75,000" required>
+                    <input class="has-prefix {{ 'error' if errors.get('income') }}" type="number" name="income"
+                        placeholder="e.g. 75,000" value="{{ values.get('income', '') }}" required>
                 </div>
+                {% if errors.get('income') %}<div class="err-msg">⚠ {{ errors.income }}</div>{% endif %}
             </div>
             <div class="field">
                 <label>Monthly Expenses</label>
                 <div class="input-wrap">
                     <span class="input-prefix">₹</span>
-                    <input class="has-prefix" type="number" name="expenses" placeholder="e.g. 45,000" required>
+                    <input class="has-prefix {{ 'error' if errors.get('expenses') }}" type="number" name="expenses"
+                        placeholder="e.g. 45,000" value="{{ values.get('expenses', '') }}" required>
                 </div>
+                {% if errors.get('expenses') %}<div class="err-msg">⚠ {{ errors.expenses }}</div>{% endif %}
             </div>
             <div class="field">
                 <label>Financial Goal</label>
                 <div class="input-wrap">
                     <span class="input-prefix">₹</span>
-                    <input class="has-prefix" type="number" name="goal" placeholder="e.g. 1,00,00,000" required>
+                    <input class="has-prefix {{ 'error' if errors.get('goal') }}" type="number" name="goal"
+                        placeholder="e.g. 1,00,00,000" value="{{ values.get('goal', '') }}" required>
                 </div>
+                {% if errors.get('goal') %}<div class="err-msg">⚠ {{ errors.goal }}</div>{% endif %}
             </div>
             <div class="field">
                 <label>Risk Tolerance</label>
@@ -211,8 +230,10 @@
 
 <script>
 function showLoading() {
-    const o = document.getElementById("loadingOverlay");
-    o.style.display = "flex";
+    // Don't show overlay if browser validation will block submission
+    const form = document.querySelector('form');
+    if (!form.checkValidity()) return;
+    document.getElementById("loadingOverlay").style.display = "flex";
 }
 </script>
 </body>
