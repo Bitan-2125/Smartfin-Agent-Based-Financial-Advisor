@@ -7,6 +7,7 @@ No API keys or network calls are required.
 import argparse
 import json
 import os
+import sys
 import tempfile
 from contextlib import contextmanager
 from unittest.mock import patch
@@ -189,5 +190,8 @@ if __name__ == "__main__":
     parser.add_argument("--markdown", action="store_true", help="print a GitHub-ready report")
     args = parser.parse_args()
     report = run_evaluation()
-    print(markdown(report) if args.markdown else json.dumps(report, indent=2))
+    if args.markdown:
+        sys.stdout.write(markdown(report))
+    else:
+        print(json.dumps(report, indent=2))
     raise SystemExit(0 if report["score"] == report["maximum"] else 1)
