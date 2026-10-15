@@ -89,6 +89,7 @@ class SmartFinTests(unittest.TestCase):
         token = self.make_plan()
         self.assertEqual(load_plan(smartfin_app.app.config["DATABASE_PATH"], token)["response"], "A sample plan")
         self.assertEqual(self.client.get("/result").status_code, 200)
+        self.assertIn(b"Groq AI is active", self.client.get("/result").data)
 
         with patch.object(smartfin_app, "llm") as fake_llm:
             fake_llm.invoke.return_value = AIMessage(content="A sample reply")
@@ -224,6 +225,7 @@ class SmartFinTests(unittest.TestCase):
             self.assertEqual(self.post("/generate", data=no_ai).status_code, 302)
             fake_llm.invoke.assert_not_called()
             self.assertEqual(self.post("/chat", json={"query": "hello"}).status_code, 403)
+            self.assertIn(b"Edit your plan", self.client.get("/result").data)
 
     def test_legacy_database_migration_and_usage_limit(self):
         path = os.path.join(self.tempdir.name, "legacy.sqlite3")

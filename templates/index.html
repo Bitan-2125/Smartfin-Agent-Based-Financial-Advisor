@@ -305,9 +305,9 @@
                 {% if errors.get('deduction_nps') %}<div class="err-msg">{{ errors.deduction_nps }}</div>{% endif %}
             </div>
             <p style="font-size:0.75rem;color:#718096;margin-bottom:16px;">Tax comparison assumes Indian resident salary income only. Leave a field blank if you do not claim that deduction.</p>
-            <label style="text-transform:none;letter-spacing:0;display:flex;gap:9px;align-items:flex-start;line-height:1.45;margin-bottom:18px">
+            <label style="text-transform:none;letter-spacing:0;display:flex;gap:12px;align-items:flex-start;line-height:1.5;margin-bottom:18px;padding:16px;background:#ebf8ff;border:1px solid #90cdf4;border-radius:10px">
                 <input type="checkbox" name="ai_consent" value="1" style="width:auto;margin-top:2px" {{ 'checked' if values.get('ai_consent') == '1' }}>
-                <span>Use optional AI explanation and chat for this plan. My planning summary and chat context will be sent to Groq; market questions may use Tavily. <a href="/privacy" target="_blank" rel="noopener">Privacy details</a>.</span>
+                <span><strong>Generate a detailed Groq AI plan and unlock follow-up chat</strong><br>Check this box to use AI for this plan. Your planning summary and chat context will be sent to Groq; market questions may use Tavily. <a href="/privacy" target="_blank" rel="noopener">Privacy details</a>.</span>
             </label>
             <button type="submit" class="submit-btn">Generate My Financial Plan →</button>
         </form>

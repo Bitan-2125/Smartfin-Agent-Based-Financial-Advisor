@@ -171,6 +171,19 @@ def search(state):
     return state
 
 def advisor(state):
+    initial_plan = state.get("user_query") == "Generate a detailed financial plan"
+    writing_brief = (
+        "Write a detailed Markdown financial planning explanation with clear sections: financial snapshot, "
+        "cash-flow and emergency reserve, debt and protection, goal scenarios and tradeoffs, a sequenced "
+        "action checklist, assumptions and uncertainties, and useful follow-up questions. Interpret the "
+        "calculated figures rather than repeating a raw list. Discuss low/base/high return assumptions as "
+        "hypothetical scenarios; only quote scenario values that are supplied. Make the plan specific to the "
+        "profile, while keeping it educational rather than recommending products or transactions."
+        if initial_plan else
+        "Answer the follow-up question directly in Markdown. Use the saved conversation and the relevant "
+        "calculated figures, explain tradeoffs and practical next steps, and acknowledge missing inputs. "
+        "Do not repeat the full initial plan unless the user asks for it."
+    )
     prompt = f"""
 User Profile (Indian investor):
 Age: {state['age']}
@@ -182,7 +195,8 @@ Calculated planning scenarios:
 Current search context: {state.get('search_result','')}
 User Query: {state.get('user_query','')}
 
-Explain the calculated gaps and assumptions. Do not invent new figures or specific product recommendations. Use ₹ for all amounts.
+{writing_brief}
+Do not invent new figures or specific product recommendations. Use ₹ for all amounts.
 """
     def calculated_response():
         return (
@@ -504,9 +518,13 @@ def tax_estimate(income, age, deduction_80c=0, deduction_80d=0, deduction_nps=0)
 
 def planning_summary(plan):
     lines = [
+        f"Monthly take-home or entered cash income: ₹{plan['monthly_income']:,}; living expenses: ₹{plan['monthly_expenses']:,}; loan payments: ₹{plan['monthly_emi']:,}.",
         f"Monthly cash-flow surplus: ₹{plan['monthly_surplus']:,} (after living expenses and loan payments).",
         f"Emergency reserve target: ₹{plan['emergency_target']:,}; gap: ₹{plan['emergency_gap']:,}.",
         f"Net worth (assets minus debt): ₹{plan['net_worth']:,}.",
+        f"Life-cover gap against the editable target: ₹{plan['life_gap']:,}; health-cover gap: ₹{plan['health_gap']:,}.",
+        f"Debt payoff status at the entered payment and fixed rate: {plan['debt_payoff']['status']}"
+        + (f", approximately {plan['debt_payoff']['months']} months." if plan['debt_payoff']['months'] is not None else "."),
         f"Total base-scenario monthly contributions needed for goals: ₹{plan['required_goal_monthly']:,}; current surplus: ₹{plan['monthly_surplus']:,}.",
         f"Assumptions: inflation {plan['assumptions']['inflation']}%; annual return scenarios {plan['assumptions']['return_low']}%, {plan['assumptions']['return_base']}%, {plan['assumptions']['return_high']}%. These are hypothetical returns, not forecasts.",
     ]
@@ -615,6 +633,7 @@ def result_page():
         profile=d["profile"],
         planning=d["planning"],
         ai_enabled=llm is not None and d.get("ai_consent", False),
+        ai_consented=d.get("ai_consent", False),
         chat_history=load_history(app.config["DATABASE_PATH"], token),
     )
 

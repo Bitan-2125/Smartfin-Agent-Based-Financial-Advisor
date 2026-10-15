@@ -71,7 +71,7 @@ The database may contain legacy account records from an earlier local version. A
 
 ## Deployment
 
-The [live Vercel deployment](https://smartfin-advisor.vercel.app/) uses the Flask runtime, a free Neon PostgreSQL database in Singapore, a stable secret session key, and no paid AI service. `vercel.json` selects the Flask framework and Singapore region. `smoke_live.py` verified the production home page, anonymous planner, plan generation, report, export, and deletion with synthetic inputs; the test plan was deleted. GitHub is connected for automatic deployments from the default branch.
+The [live Vercel deployment](https://smartfin-advisor.vercel.app/) uses the Flask runtime, a free Neon PostgreSQL database in Singapore, a stable secret session key, and free-tier Groq and Tavily keys. Check the AI consent box when generating a plan to get a detailed Groq explanation and follow-up chat. `vercel.json` selects the Flask framework and Singapore region. `smoke_live.py --ai` verifies plan generation, a Groq response, chat, export, and deletion with synthetic inputs. GitHub is connected for automatic deployments from the default branch.
 
 For another Vercel deployment, set a stable `SECRET_KEY`, `SESSION_COOKIE_SECURE=true`, and a private persistent PostgreSQL `DATABASE_URL`. **Do not use SQLite on Vercel:** its functions have [read-only deployment files and temporary scratch storage](https://vercel.com/docs/functions/runtimes), so saved plans would disappear. Vercel [supports a root-level Flask `app` instance](https://vercel.com/kb/guide/ship-a-flask-app-on-vercel), which this repository exports from `app.py`.
 

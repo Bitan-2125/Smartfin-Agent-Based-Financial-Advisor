@@ -284,7 +284,7 @@
 
     <div class="card">
         <div class="card-header">
-            <div class="card-title"><div class="card-icon">📄</div> Advisor explanation</div>
+            <div class="card-title"><div class="card-icon">📄</div> {{ 'Groq AI advisor explanation' if ai_enabled else 'Calculated planning summary' }}</div>
         </div>
         <div class="plan-content" id="planContent"></div>
     </div>
@@ -349,7 +349,9 @@
             <div class="card-title"><div class="card-icon">💬</div> Ask SmartFin</div>
             <span style="font-size:0.78rem;color:#718096;">Based on your profile above</span>
         </div>
-        {% if not ai_enabled %}<p class="note">AI chat is off. Add a free-tier Groq API key to enable explanations. The financial calculations above work without it.</p>{% endif %}
+        {% if ai_enabled %}<p class="note">Groq AI is active for this plan. Ask a follow-up question below.</p>
+        {% elif not ai_consented %}<p class="note">AI chat is off for this plan. <a href="/edit">Edit your plan</a>, check “Generate a detailed Groq AI plan and unlock follow-up chat”, and generate it again.</p>
+        {% else %}<p class="note">Groq AI is temporarily unavailable. The calculated report is still available.</p>{% endif %}
         <div class="chat-messages" id="chatMessages"></div>
         {% if ai_enabled %}
         <div class="chat-input-row">
