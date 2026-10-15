@@ -1,134 +1,81 @@
-#  SmartFin – Agentic AI Financial Advisor
+# SmartFin
 
-SmartFin is an **agentic AI-powered financial advisor** built using **LangGraph, Groq LLMs, Streamlit, and online web search tools**.  
-It provides **personalized financial planning**, **investment guidance**, and **real-time market-aware answers** through a conversational interface.
+An open-source financial planning workspace for Indian salaried households. Enter income, expenses, debt, cover, and goals to get a transparent, editable scenario report. **No account or paid API is required.** Optional Groq and Tavily keys add AI explanation and search context.
 
-Unlike traditional chatbots, SmartFin uses a **deterministic agent architecture** with explicit reasoning steps, financial tools, and optional online research.
+[![CI](https://github.com/Bitan-2125/Smartfin-Agent-Based-Financial-Advisor/actions/workflows/ci.yml/badge.svg)](https://github.com/Bitan-2125/Smartfin-Agent-Based-Financial-Advisor/actions/workflows/ci.yml) [![Engineering evaluation](https://img.shields.io/badge/engineering%20evaluation-100%2F100-2ea44f)](EVALUATION.md)
 
----
+## What it does
 
-## 🚀 Live Application
+- Calculates cash flow using take-home pay, expenses, and loan payments; net worth; and an emergency reserve target and gap.
+- Models fixed-rate debt payoff and flags payments that do not cover interest.
+- Shows life and health coverage gaps against editable starting targets.
+- Models up to five goals with inflation-adjusted targets and low, base, and high return scenarios. It displays required monthly funding, projected values, and shortfalls.
+- Provides a limited FY 2026–27 Indian salary tax illustration, including entered 80C, self/family 80D, and additional 80CCD(1B) amounts. It does not estimate tax above ₹50 lakh annual salary or handle special-rate income, all exemptions, tax credits, or surcharge.
+- Supports editing, JSON export, and deletion of the current plan. Optional AI needs explicit opt-in for each plan; the deterministic report remains available when providers fail.
 
-🔗 **App Link:**  
-👉 https://smartfin-agent-based-financial-advisor.onrender.com/ 
+**Scope:** This is an educational portfolio project, not a SEBI-registered investment adviser. It does not recommend securities or products, connect to banks, or place transactions. Returns are user-editable assumptions, not forecasts. Financial and legal content needs professional review before any public advisory use.
 
+## Evaluation
 
----
+`python evaluation.py` runs 12 offline behavioral checks and prints a machine-readable score. The checked areas are planning arithmetic (40 points), input quality (10), privacy and data controls (30), and AI safeguards (20). The latest local result is **100/100, 12/12 checks passing**; see the exact rubric and results in [EVALUATION.md](EVALUATION.md). The score measures these engineering checks only. It does **not** measure investment outcomes, model factuality, regulatory compliance, or production readiness.
 
-## 🧠 Key Features
+CI runs both the evaluation and unit tests on each push and pull request. The unit suite currently has 14 tests.
 
-- ✅ Personalized financial planning based on user profile  
-- ✅ Goal-based investment timeline estimation  
-- ✅ SIP growth projections with charts  
-- ✅ Follow-up conversational chat (context-aware)  
-- ✅ Agentic reasoning using LangGraph (not legacy agents)  
-- ✅ Online market & stock research using web search  
-- ✅ Safe & conservative financial advice (no guarantees)  
+```powershell
+python evaluation.py
+python evaluation.py --markdown
+python -m unittest discover -s tests -v
+```
 
----
+## Run locally
 
-## 🏗️ Architecture Overview
+Requires Python 3.11 or newer. In PowerShell:
 
-SmartFin is built using a **state-driven agentic workflow** instead of a single monolithic LLM call.
+```powershell
+py -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+python -c "import secrets; print(secrets.token_hex(32))"
+```
 
----
+Paste the generated value after `SECRET_KEY=` in `.env`, then run:
 
-## 🧩 Agentic Design (LangGraph)
+```powershell
+python app.py
+```
 
-The core intelligence is implemented using **LangGraph**, which allows explicit control over agent behavior.
+Open `http://127.0.0.1:5000/plan`. On Linux or macOS, use `python3 -m venv venv`, `source venv/bin/activate`, and `cp .env.example .env`.
 
-### 🔸 State Object (`FinanceState`)
-All agents operate on a shared state containing:
-- User profile (age, income, expenses, risk)
-- Financial calculations (monthly savings, goal timeline)
-- Chat history
-- Online search results
-- Final AI response
+The calculator needs no API key. `GROQ_API_KEY` enables optional AI explanations; `TAVILY_API_KEY` enables optional search. `USE_LLM=false` forces the calculator-only mode. The PDF export button loads browser libraries from a CDN.
 
----
+## Design and data handling
 
-### 🔸 Agent Nodes
+```mermaid
+flowchart LR
+    Browser --> Flask
+    Flask --> Validator
+    Validator --> Planner[Deterministic planner]
+    Planner --> DB[(SQLite or PostgreSQL)]
+    Planner --> Report
+    Flask -. explicit opt-in .-> Groq
+    Flask -. optional search .-> Tavily
+```
 
-#### 1️⃣ Profile Analyzer Node
-- Computes monthly savings
-- Normalizes user financial inputs
+`planning.py` contains the deterministic calculations. `app.py` handles validation, the Flask routes, and the optional LangGraph flow. `storage.py` stores plans and chat history in SQLite by default or PostgreSQL when `DATABASE_URL` is set. The session cookie holds a random plan token, not financial inputs. Plans expire after seven days and are removed during later plan activity. Recalculating replaces the current browser's plan. The report provides export and delete controls. POST routes use CSRF tokens, and responses include browser security headers.
 
-#### 2️⃣ Financial Calculator Node
-- Estimates time to reach financial goals
-- Generates SIP growth projections
-- Ensures all numbers come from deterministic logic (no hallucination)
+The database may contain legacy account records from an earlier local version. Account routes are removed; those account-owned plans are not exposed through the anonymous planner. Back up or remove old data deliberately if it exists.
 
-#### 3️⃣ Online Search Node
-- Triggered only when user asks about:
-  - Stocks
-  - Markets
-  - Investments
-  - Financial news
-- Uses Tavily search API for real-time information
+## Deployment
 
-#### 4️⃣ Advisor Node (LLM)
-- Uses Groq-hosted `gpt-oss-20b` model
-- Combines:
-  - User profile
-  - Calculated results
-  - Search insights
-  - Conversation history
-- Produces structured, safe financial advice
+Vercel [supports a root-level Flask `app` instance](https://vercel.com/kb/guide/ship-a-flask-app-on-vercel), so `app.py` is the entry point. Set a stable `SECRET_KEY`, `SESSION_COOKIE_SECURE=true`, and a private persistent PostgreSQL `DATABASE_URL` in the Vercel project. **Do not use SQLite on Vercel:** its functions have [read-only deployment files and temporary scratch storage](https://vercel.com/docs/functions/runtimes), so saved plans would disappear. The PostgreSQL adapter has been exercised with SQLite-compatible unit tests but still needs an end-to-end test against a live hosted database before a Vercel release.
 
----
+For the existing Render service, `Procfile` runs `gunicorn app:app`. Render's [free web filesystem is ephemeral](https://render.com/docs/free), so that service also needs persistent external PostgreSQL for saved plans.
 
-## 🖥️ Frontend (Streamlit)
+For public use, add an operator privacy policy and contact, backups, monitoring, and review of accessibility and financial content. The included [privacy notice](templates/privacy.html) describes the current app mechanics; it is not a substitute for an operator's legal notice.
 
-The Streamlit UI provides:
-- Sidebar for user profile input
-- Button to generate initial financial plan
-- Interactive charts for investment growth
-- Follow-up chat box for additional questions
+## References
 
----
-
-## 📊 Visualizations
-
-- 📈 SIP / Investment Growth Chart
-- (Extensible to asset allocation pie charts, what-if simulations)
-
----
-
-## 🔍 Online Search Integration
-
-SmartFin can perform **real-time online research** when required:
-- Uses Tavily Search API
-- Searches are triggered intelligently based on query intent
-- Results are summarized and grounded into the final response
-
-> This enables questions like:
-> - *“Which stocks should I invest in?”*
-> - *“What are good long-term investments right now?”*
-
----
-
-## 🛡️ Safety & Compliance
-
-- ❌ No guaranteed returns
-- ❌ No direct buy/sell recommendations
-- ✅ Conservative assumptions
-- ✅ Clear disclaimers
-- ✅ Explainable reasoning
-
-This makes SmartFin suitable for **FinTech demos, research, and production prototypes**.
-
----
-
-## 🧪 Tech Stack
-
-- **Frontend:** Streamlit  
-- **LLM Inference:** Groq (`gpt-oss-120b`)  
-- **Agent Framework:** LangGraph  
-- **LLM Interface:** langchain-openai  
-- **Search Tool:** Tavily API  
-- **Visualization:** Matplotlib  
-- **Environment Management:** python-dotenv  
-
----
-
-
+- [Income Tax Department: tax rates](https://www.incometaxindia.gov.in/w/tax-rates-and-computation) and [salary deductions](https://www.incometaxindia.gov.in/w/income-from-salary)
+- [RBI financial education material](https://www.rbi.org.in/FinancialEducation/content/I%20Can%20Do_RBI.pdf)
+- [SEBI investor caution](https://investor.sebi.gov.in/cautiontoinvestor.html) and [investment adviser guide](https://investor.sebi.gov.in/investment_advisor.html)

@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SmartFin — AI Financial Advisor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SmartFin — Financial Planning</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -127,6 +128,12 @@
 
         .trust-row { display: flex; justify-content: center; gap: 20px; margin-top: 20px; }
         .trust-item { font-size: 0.75rem; color: #718096; display: flex; align-items: center; gap: 4px; }
+        .section-heading { color:#1a365d; font-size:1rem; margin:24px 0 12px; }
+        .field-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 14px; }
+        .hint { font-size:.76rem; color:#718096; line-height:1.5; margin:4px 0 12px; }
+        .goal-row { border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin:12px 0; }
+        .text-btn { border:1px solid #2b6cb0; background:#fff; color:#2b6cb0; border-radius:8px; padding:8px 12px; cursor:pointer; font-weight:600; }
+        @media(max-width:600px){ .field-grid{grid-template-columns:1fr;} .hero{padding:44px 16px;} .hero-stats{gap:14px;} .card{padding:20px;} }
     </style>
 </head>
 <body>
@@ -145,14 +152,15 @@
         </a>
     </div>
     <span class="nav-tag">INDIA MARKET</span>
+    <a href="/privacy" style="font-size:.82rem;color:#2b6cb0;text-decoration:none">Privacy</a>
 </nav>
 
 <div class="hero">
-    <h1>Your AI Financial Advisor</h1>
-    <p>Personalized investment plans for the Indian market — PPF, SIP, NPS & more</p>
+    <h1>Your Financial Planning Workspace</h1>
+    <p>Understand your cash flow, protection, debt and goals with editable assumptions</p>
     <div class="hero-stats">
-        <div class="hero-stat"><div class="val">Nifty 50</div><div class="lbl">~12% long-term CAGR</div></div>
-        <div class="hero-stat"><div class="val">PPF</div><div class="lbl">7.1% tax-free returns</div></div>
+        <div class="hero-stat"><div class="val">Nifty 50</div><div class="lbl">Indian equity benchmark</div></div>
+        <div class="hero-stat"><div class="val">PPF</div><div class="lbl">Long-term savings</div></div>
         <div class="hero-stat"><div class="val">ELSS</div><div class="lbl">80C tax savings</div></div>
     </div>
 </div>
@@ -160,7 +168,9 @@
 <div class="main">
     <div class="card">
         <div class="card-title"><span>📋</span> Your Financial Profile</div>
+        {% if errors.get('service') %}<p class="err-msg" role="alert">{{ errors.service }}</p>{% endif %}
         <form method="POST" action="/generate" onsubmit="showLoading()">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="field">
                 <label>Age</label>
                 <input type="number" name="age" placeholder="e.g. 28" min="18" max="80"
@@ -169,13 +179,19 @@
                 {% if errors.get('age') %}<div class="err-msg">⚠ {{ errors.age }}</div>{% endif %}
             </div>
             <div class="field">
-                <label>Monthly Income</label>
+                <label>Monthly Gross Salary</label>
                 <div class="input-wrap">
                     <span class="input-prefix">₹</span>
                     <input class="has-prefix {{ 'error' if errors.get('income') }}" type="number" name="income"
                         placeholder="e.g. 75,000" value="{{ values.get('income', '') }}" required>
                 </div>
                 {% if errors.get('income') %}<div class="err-msg">⚠ {{ errors.income }}</div>{% endif %}
+            </div>
+            <div class="field">
+                <label>Monthly take-home pay (₹, recommended)</label>
+                <input type="number" name="monthly_take_home" min="0" value="{{ values.get('monthly_take_home', '') }}" placeholder="After tax and payroll deductions">
+                <p class="hint">Cash-flow calculations use this amount. If left blank, gross salary is used and the surplus will be optimistic.</p>
+                {% if errors.get('monthly_take_home') %}<div class="err-msg">{{ errors.monthly_take_home }}</div>{% endif %}
             </div>
             <div class="field">
                 <label>Monthly Expenses</label>
@@ -195,49 +211,110 @@
                 </div>
                 {% if errors.get('goal') %}<div class="err-msg">⚠ {{ errors.goal }}</div>{% endif %}
             </div>
+            <div class="field-grid">
+                <div class="field"><label>Goal name</label><input name="goal_name" maxlength="60" value="{{ values.get('goal_name', 'Primary goal') }}" required></div>
+                <div class="field"><label>Years to goal</label><input type="number" name="goal_years" min="1" max="50" value="{{ values.get('goal_years', 10) }}" required></div>
+                <div class="field"><label>Already saved for goal (₹)</label><input type="number" name="goal_saved" min="0" value="{{ values.get('goal_saved', 0) }}"></div>
+                <div class="field"><label>Planned monthly contribution (₹)</label><input type="number" name="goal_monthly" min="0" value="{{ values.get('goal_monthly', 0) }}"></div>
+            </div>
+            {% for key in ['goal_name','goal_years','goal_saved','goal_monthly'] %}{% if errors.get(key) %}<div class="err-msg">{{ errors[key] }}</div>{% endif %}{% endfor %}
+            <div id="extraGoals"></div>
+            <button class="text-btn" type="button" onclick="addGoal()">+ Add another goal</button>
+            {% if errors.get('extra_goals') %}<div class="err-msg">{{ errors.extra_goals }}</div>{% endif %}
+            <h2 class="section-heading">Cash flow and balance sheet</h2>
+            <div class="field-grid">
+                <div class="field"><label>Monthly loan payments (₹)</label><input type="number" name="monthly_emi" min="0" value="{{ values.get('monthly_emi', 0) }}"></div>
+                <div class="field"><label>Outstanding debt (₹)</label><input type="number" name="debt_balance" min="0" value="{{ values.get('debt_balance', 0) }}"></div>
+                <div class="field"><label>Debt annual interest (%)</label><input type="number" name="debt_rate" min="0" max="100" step="0.01" value="{{ values.get('debt_rate', 0) }}"></div>
+                <div class="field"><label>Accessible savings (₹)</label><input type="number" name="liquid_savings" min="0" value="{{ values.get('liquid_savings', 0) }}"></div>
+                <div class="field"><label>Current investments (₹)</label><input type="number" name="investments" min="0" value="{{ values.get('investments', 0) }}"></div>
+                <div class="field"><label>Emergency reserve months</label><input type="number" name="emergency_months" min="1" max="24" value="{{ values.get('emergency_months', 6) }}"></div>
+            </div>
+            {% for key in ['monthly_emi','debt_balance','debt_rate','liquid_savings','investments','emergency_months'] %}{% if errors.get(key) %}<div class="err-msg">{{ errors[key] }}</div>{% endif %}{% endfor %}
             <div class="field">
                 <label>Risk Tolerance</label>
                 <div class="risk-grid">
                     <div>
-                        <input class="risk-opt" type="radio" name="risk" id="r-low" value="Low" checked>
+                        <input class="risk-opt" type="radio" name="risk" id="r-low" value="Low" {{ 'checked' if values.get('risk', 'Low') == 'Low' }}>
                         <label class="risk-label" for="r-low">Low</label>
                     </div>
                     <div>
-                        <input class="risk-opt" type="radio" name="risk" id="r-med" value="Medium">
+                        <input class="risk-opt" type="radio" name="risk" id="r-med" value="Medium" {{ 'checked' if values.get('risk') == 'Medium' }}>
                         <label class="risk-label" for="r-med">Medium</label>
                     </div>
                     <div>
-                        <input class="risk-opt" type="radio" name="risk" id="r-high" value="High">
+                        <input class="risk-opt" type="radio" name="risk" id="r-high" value="High" {{ 'checked' if values.get('risk') == 'High' }}>
                         <label class="risk-label" for="r-high">High</label>
                     </div>
                 </div>
+                {% if errors.get('risk') %}<div class="err-msg">{{ errors.risk }}</div>{% endif %}
             </div>
             <hr class="divider">
             <div class="field">
                 <label>Dependents</label>
                 <select name="dependents">
-                    <option value="0">None</option>
-                    <option value="1">1 (spouse or parent)</option>
-                    <option value="2">2</option>
-                    <option value="3">3+</option>
+                    <option value="0" {{ 'selected' if values.get('dependents', '0') == '0' }}>None</option>
+                    <option value="1" {{ 'selected' if values.get('dependents') == '1' }}>1 (spouse or parent)</option>
+                    <option value="2" {{ 'selected' if values.get('dependents') == '2' }}>2</option>
+                    <option value="3" {{ 'selected' if values.get('dependents') == '3' }}>3+</option>
                 </select>
+                {% if errors.get('dependents') %}<div class="err-msg">{{ errors.dependents }}</div>{% endif %}
             </div>
             <div class="field">
                 <label>Existing Insurance Cover</label>
                 <select name="has_insurance">
-                    <option value="none">No insurance at all</option>
-                    <option value="health_only">Health insurance only</option>
-                    <option value="life_only">Life insurance only</option>
-                    <option value="both">Both life &amp; health</option>
+                    <option value="none" {{ 'selected' if values.get('has_insurance', 'none') == 'none' }}>No insurance at all</option>
+                    <option value="health_only" {{ 'selected' if values.get('has_insurance') == 'health_only' }}>Health insurance only</option>
+                    <option value="life_only" {{ 'selected' if values.get('has_insurance') == 'life_only' }}>Life insurance only</option>
+                    <option value="both" {{ 'selected' if values.get('has_insurance') == 'both' }}>Both life &amp; health</option>
                 </select>
+                {% if errors.get('has_insurance') %}<div class="err-msg">{{ errors.has_insurance }}</div>{% endif %}
             </div>
+            <p class="hint">Enter actual cover amounts for the gap estimate. Policy status alone cannot measure adequacy.</p>
+            <div class="field-grid">
+                <div class="field"><label>Life cover (₹)</label><input type="number" name="life_cover" min="0" value="{{ values.get('life_cover', 0) }}"></div>
+                <div class="field"><label>Health cover (₹)</label><input type="number" name="health_cover" min="0" value="{{ values.get('health_cover', 0) }}"></div>
+                <div class="field"><label>Life cover target (₹, optional)</label><input type="number" name="life_target" min="0" value="{{ values.get('life_target', '') }}"></div>
+                <div class="field"><label>Health cover target (₹, optional)</label><input type="number" name="health_target" min="0" value="{{ values.get('health_target', '') }}"></div>
+            </div>
+            <p class="hint">Blank targets use an editable starting point: life cover of 10× annual income plus debt if you have dependents, and health cover of ₹5 lakh plus ₹2 lakh per dependent. Review your needs and policy terms with a qualified professional.</p>
+            {% for key in ['life_cover','health_cover','life_target','health_target'] %}{% if errors.get(key) %}<div class="err-msg">{{ errors[key] }}</div>{% endif %}{% endfor %}
+            <h2 class="section-heading">Scenario assumptions</h2>
+            <div class="field-grid">
+                <div class="field"><label>Inflation (%)</label><input type="number" name="inflation" min="0" max="20" step="0.1" value="{{ values.get('inflation', 6) }}"></div>
+                <div class="field"><label>Low annual return (%)</label><input type="number" name="return_low" min="0" max="25" step="0.1" value="{{ values.get('return_low', 4) }}"></div>
+                <div class="field"><label>Base annual return (%)</label><input type="number" name="return_base" min="0" max="25" step="0.1" value="{{ values.get('return_base', 8) }}"></div>
+                <div class="field"><label>High annual return (%)</label><input type="number" name="return_high" min="0" max="25" step="0.1" value="{{ values.get('return_high', 12) }}"></div>
+            </div>
+            <p class="hint">These returns are hypothetical and are not forecasts or guarantees. Figures exclude investment fees and taxes.</p>
+            {% for key in ['inflation','return_low','return_base','return_high','returns'] %}{% if errors.get(key) %}<div class="err-msg">{{ errors[key] }}</div>{% endif %}{% endfor %}
             <hr class="divider">
+            <div class="field">
+                <label>Annual 80C contributions (optional)</label>
+                <input type="number" name="deduction_80c" min="0" max="150000" step="1" value="{{ values.get('deduction_80c', '') }}" placeholder="EPF, PPF, ELSS; up to ₹1,50,000">
+                {% if errors.get('deduction_80c') %}<div class="err-msg">{{ errors.deduction_80c }}</div>{% endif %}
+            </div>
+            <div class="field">
+                <label>Annual 80D self/family health premiums (optional)</label>
+                <input type="number" name="deduction_80d" min="0" max="50000" step="1" value="{{ values.get('deduction_80d', '') }}" placeholder="Up to ₹25,000; ₹50,000 if age 60+">
+                {% if errors.get('deduction_80d') %}<div class="err-msg">{{ errors.deduction_80d }}</div>{% endif %}
+            </div>
+            <div class="field">
+                <label>Additional annual NPS 80CCD(1B) (optional)</label>
+                <input type="number" name="deduction_nps" min="0" max="50000" step="1" value="{{ values.get('deduction_nps', '') }}" placeholder="Beyond 80C; up to ₹50,000">
+                {% if errors.get('deduction_nps') %}<div class="err-msg">{{ errors.deduction_nps }}</div>{% endif %}
+            </div>
+            <p style="font-size:0.75rem;color:#718096;margin-bottom:16px;">Tax comparison assumes Indian resident salary income only. Leave a field blank if you do not claim that deduction.</p>
+            <label style="text-transform:none;letter-spacing:0;display:flex;gap:9px;align-items:flex-start;line-height:1.45;margin-bottom:18px">
+                <input type="checkbox" name="ai_consent" value="1" style="width:auto;margin-top:2px" {{ 'checked' if values.get('ai_consent') == '1' }}>
+                <span>Use optional AI explanation and chat for this plan. My planning summary and chat context will be sent to Groq; market questions may use Tavily. <a href="/privacy" target="_blank" rel="noopener">Privacy details</a>.</span>
+            </label>
             <button type="submit" class="submit-btn">Generate My Financial Plan →</button>
         </form>
         <div class="trust-row">
-            <span class="trust-item">🔒 Private & Secure</span>
+            <span class="trust-item">🗂️ Plans saved for 7 days</span>
             <span class="trust-item">🇮🇳 India-focused</span>
-            <span class="trust-item">⚡ AI-powered</span>
+            <span class="trust-item">⚡ AI optional</span>
         </div>
     </div>
 </div>
@@ -248,6 +325,18 @@
 </div>
 
 <script>
+function addGoal(data = {}) {
+    const list = document.getElementById('extraGoals');
+    if (list.children.length >= 4) return;
+    const row = document.createElement('div');
+    row.className = 'goal-row';
+    row.innerHTML = `<div class="field"><label>Goal name</label><input name="extra_goal_name" maxlength="60" required></div><div class="field-grid"><div class="field"><label>Amount today (₹)</label><input type="number" name="extra_goal_amount" min="1" required></div><div class="field"><label>Years</label><input type="number" name="extra_goal_years" min="1" max="50" required></div><div class="field"><label>Already saved (₹)</label><input type="number" name="extra_goal_saved" min="0" value="0"></div><div class="field"><label>Monthly contribution (₹)</label><input type="number" name="extra_goal_monthly" min="0" value="0"></div></div><button type="button" class="text-btn" onclick="this.parentElement.remove()">Remove goal</button>`;
+    list.appendChild(row);
+    Object.entries(data).forEach(([key, value]) => { const input = row.querySelector(`[name="extra_goal_${key}"]`); if (input) input.value = value; });
+}
+{% for row in extra_rows %}
+addGoal({{ row|tojson }});
+{% endfor %}
 function showLoading() {
     // Don't show overlay if browser validation will block submission
     const form = document.querySelector('form');

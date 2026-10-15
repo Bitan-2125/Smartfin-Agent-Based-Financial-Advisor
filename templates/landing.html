@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartFin — AI Financial Advisor for India</title>
+    <title>SmartFin — Financial Planning for India</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -237,28 +237,28 @@
         <a href="#features">Features</a>
         <a href="#instruments">Instruments</a>
     </div>
-    <a href="/plan" class="nav-cta">Get My Plan →</a>
+    <a href="{{ '/result' if has_plan else '/plan' }}" class="nav-cta">{{ 'My Plan →' if has_plan else 'Start planning →' }}</a>
 </nav>
 
 <!-- HERO -->
 <div class="hero">
     <div class="hero-grid"></div>
     <div class="hero-glow"></div>
-    <div class="hero-badge"><span class="dot"></span> Powered by AI · India-focused</div>
-    <h1>Your <span class="accent">AI Financial Advisor</span><br>for the Indian Market</h1>
-    <p>Get a personalized investment plan covering PPF, SIP, NPS, ELSS, tax savings and more — tailored to your income, goals and risk appetite.</p>
+    <div class="hero-badge"><span class="dot"></span> Free planning tools · India-focused</div>
+    <h1>Plan your <span class="accent">financial future</span><br>with clear numbers</h1>
+    <p>Explore cash flow, emergency savings, debt, protection and multiple goals. Adjust the assumptions and see what each goal needs.</p>
     <div class="hero-btns">
         <a href="/plan" class="btn-hero-primary">Generate My Free Plan →</a>
         <a href="#how" class="btn-hero-secondary">See How It Works</a>
     </div>
     <div class="hero-stats">
-        <div class="hero-stat"><div class="val">Nifty 50</div><div class="lbl">~12% long-term CAGR</div></div>
+        <div class="hero-stat"><div class="val">Nifty 50</div><div class="lbl">Indian equity benchmark</div></div>
         <div class="hero-divider"></div>
-        <div class="hero-stat"><div class="val">PPF</div><div class="lbl">7.1% tax-free</div></div>
+        <div class="hero-stat"><div class="val">PPF</div><div class="lbl">Long-term savings</div></div>
         <div class="hero-divider"></div>
         <div class="hero-stat"><div class="val">₹1.5L</div><div class="lbl">80C deduction limit</div></div>
         <div class="hero-divider"></div>
-        <div class="hero-stat"><div class="val">ELSS</div><div class="lbl">Best tax-saving equity fund</div></div>
+        <div class="hero-stat"><div class="val">ELSS</div><div class="lbl">Old-regime 80C option</div></div>
     </div>
 </div>
 
@@ -267,7 +267,7 @@
     <div class="section-inner">
         <div class="section-tag">How It Works</div>
         <div class="section-title">From profile to plan in minutes</div>
-        <p class="section-sub">SmartFin uses an AI agent pipeline to analyze your finances and generate a comprehensive roadmap.</p>
+        <p class="section-sub">SmartFin calculates your plan from the values you enter. Optional AI adds a written explanation.</p>
         <div class="steps">
             <div class="step">
                 <div class="step-num">1</div>
@@ -276,18 +276,18 @@
             </div>
             <div class="step">
                 <div class="step-num">2</div>
-                <h3>AI Analyzes & Calculates</h3>
-                <p>Our LangGraph agent computes your monthly savings, SIP projections and goal timeline automatically.</p>
+                <h3>Calculate Your Baseline</h3>
+                <p>See monthly cash flow, net worth, debt payoff and emergency reserve gaps.</p>
             </div>
             <div class="step">
                 <div class="step-num">3</div>
                 <h3>Get Your Roadmap</h3>
-                <p>Receive a detailed plan with portfolio allocation, tax estimates and instrument recommendations.</p>
+                <p>Compare low, base and high scenarios for each goal and review your next steps.</p>
             </div>
             <div class="step">
                 <div class="step-num">4</div>
                 <h3>Ask Follow-up Questions</h3>
-                <p>Chat with SmartFin about your plan — compare instruments, adjust goals, or ask about tax regimes.</p>
+                <p>Ask about your saved plan. AI commentary is available when a free-tier API key is configured.</p>
             </div>
         </div>
     </div>
@@ -297,13 +297,13 @@
 <section class="features-bg" id="features">
     <div class="section-inner">
         <div class="section-tag">Features</div>
-        <div class="section-title">Everything you need to invest smarter</div>
-        <p class="section-sub">Built specifically for Indian investors with real market benchmarks and tax laws.</p>
+        <div class="section-title">A clearer view of your finances</div>
+        <p class="section-sub">Built for Indian salaried households, with transparent calculations and editable assumptions.</p>
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon" style="background:#ebf8ff;">📊</div>
-                <h3>Portfolio Allocation Chart</h3>
-                <p>Visual breakdown of how to split your savings across equity, debt, gold and emergency funds based on your risk profile.</p>
+                <h3>Cash Flow and Net Worth</h3>
+                <p>See income after payroll deductions, expenses, loan payments, assets and debt in one report.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background:#f0fff4;">🧾</div>
@@ -312,13 +312,13 @@
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background:#fffbeb;">📈</div>
-                <h3>SIP Growth Projection</h3>
-                <p>Interactive chart showing how your monthly SIP compounds over time to reach your financial goal.</p>
+                <h3>Goal Scenarios</h3>
+                <p>Compare the monthly funding needed under three return assumptions and a chosen inflation rate.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background:#fff5f5;">💬</div>
-                <h3>AI Chat Advisor</h3>
-                <p>Ask anything about your plan — PPF vs ELSS, how to rebalance, what happens if income changes. Context-aware answers.</p>
+                <h3>Optional AI Explanation</h3>
+                <p>Get a contextual explanation when configured; the calculator also works without API keys.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background:#faf5ff;">⬇</div>
@@ -327,8 +327,8 @@
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background:#ebf8ff;">🔍</div>
-                <h3>Live Market Search</h3>
-                <p>When you ask about stocks, Nifty or mutual funds, SmartFin fetches real-time data via Tavily to give current context.</p>
+                <h3>Export and Delete</h3>
+                <p>Download your plan data as JSON or delete the saved plan and chat history.</p>
             </div>
         </div>
     </div>
@@ -339,20 +339,20 @@
     <div class="section-inner">
         <div class="section-tag">Instruments Covered</div>
         <div class="section-title">All major Indian investment options</div>
-        <p class="section-sub">SmartFin advises across the full spectrum of Indian financial instruments.</p>
+        <p class="section-sub">Learn about common categories. SmartFin does not recommend a specific security or product.</p>
         <div class="instruments-grid">
-            <div class="instrument"><div class="i-icon">🏦</div><div class="i-name">PPF</div><div class="i-ret">7.1% tax-free</div></div>
-            <div class="instrument"><div class="i-icon">📈</div><div class="i-name">ELSS</div><div class="i-ret">~12% + 80C</div></div>
+            <div class="instrument"><div class="i-icon">🏦</div><div class="i-name">PPF</div><div class="i-ret">Government savings</div></div>
+            <div class="instrument"><div class="i-icon">📈</div><div class="i-name">ELSS</div><div class="i-ret">Equity, old-regime 80C</div></div>
             <div class="instrument"><div class="i-icon">🔄</div><div class="i-name">SIP / MF</div><div class="i-ret">Market-linked</div></div>
-            <div class="instrument"><div class="i-icon">🏛️</div><div class="i-name">NPS</div><div class="i-ret">80CCD(1B) ₹50k</div></div>
-            <div class="instrument"><div class="i-icon">🏢</div><div class="i-name">EPF</div><div class="i-ret">8.25% p.a.</div></div>
-            <div class="instrument"><div class="i-icon">💰</div><div class="i-name">FD / RD</div><div class="i-ret">~7% p.a.</div></div>
-            <div class="instrument"><div class="i-icon">🥇</div><div class="i-name">Sovereign Gold Bond</div><div class="i-ret">2.5% + gold gains</div></div>
-            <div class="instrument"><div class="i-icon">📜</div><div class="i-name">NSC</div><div class="i-ret">7.7% + 80C</div></div>
-            <div class="instrument"><div class="i-icon">👧</div><div class="i-name">Sukanya Samriddhi</div><div class="i-ret">8.2% tax-free</div></div>
-            <div class="instrument"><div class="i-icon">🏗️</div><div class="i-name">REITs</div><div class="i-ret">~8% yield</div></div>
+            <div class="instrument"><div class="i-icon">🏛️</div><div class="i-name">NPS</div><div class="i-ret">Retirement savings</div></div>
+            <div class="instrument"><div class="i-icon">🏢</div><div class="i-name">EPF</div><div class="i-ret">Employee provident fund</div></div>
+            <div class="instrument"><div class="i-icon">💰</div><div class="i-name">FD / RD</div><div class="i-ret">Bank deposits</div></div>
+            <div class="instrument"><div class="i-icon">🥇</div><div class="i-name">Sovereign Gold Bond</div><div class="i-ret">Gold-linked bonds</div></div>
+            <div class="instrument"><div class="i-icon">📜</div><div class="i-name">NSC</div><div class="i-ret">Small savings</div></div>
+            <div class="instrument"><div class="i-icon">👧</div><div class="i-name">Sukanya Samriddhi</div><div class="i-ret">Savings for girls</div></div>
+            <div class="instrument"><div class="i-icon">🏗️</div><div class="i-name">REITs</div><div class="i-ret">Listed real estate</div></div>
             <div class="instrument"><div class="i-icon">📊</div><div class="i-name">Direct Equity</div><div class="i-ret">NSE / BSE</div></div>
-            <div class="instrument"><div class="i-icon">🏠</div><div class="i-name">Debt Funds</div><div class="i-ret">~6–7% p.a.</div></div>
+            <div class="instrument"><div class="i-icon">🏠</div><div class="i-name">Debt Funds</div><div class="i-ret">Market-linked debt</div></div>
         </div>
     </div>
 </section>
@@ -360,7 +360,7 @@
 <!-- CTA BAND -->
 <div class="cta-band">
     <h2>Ready to take control of your finances?</h2>
-    <p>Free, instant, and tailored to the Indian market. No sign-up required.</p>
+    <p>Build an India-focused plan in minutes. No account is needed.</p>
     <a href="/plan" class="btn-cta">Generate My Financial Plan →</a>
 </div>
 
@@ -376,10 +376,9 @@
         </svg>
         SmartFin AI
     </div>
-    <p class="disclaimer">SmartFin is an AI-powered tool for informational purposes only. It does not constitute SEBI-registered investment advice. Please consult a qualified financial advisor before making investment decisions.</p>
-    <p style="font-size:0.78rem;">© 2025 SmartFin AI · India</p>
+    <p class="disclaimer">SmartFin provides educational planning scenarios. It is not a SEBI-registered investment adviser. Consult qualified professionals for personal investment, insurance and tax decisions.</p>
+    <p style="font-size:0.78rem;">© 2026 SmartFin AI · India</p>
 </footer>
 
 </body>
 </html>
-""

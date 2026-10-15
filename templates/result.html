@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SmartFin — Your Financial Plan</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -174,6 +175,24 @@
         /* PDF loading */
         .pdf-spinner { display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .metric-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+        .metric { background:#f7fafc; border:1px solid #e2e8f0; border-radius:10px; padding:15px; }
+        .metric small { display:block; color:#718096; font-size:.75rem; margin-bottom:5px; }
+        .metric strong { color:#1a365d; font-size:1.18rem; }
+        .note { font-size:.78rem; line-height:1.55; color:#718096; margin-top:12px; }
+        .goal-card { border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin:12px 0; }
+        .goal-card h3 { color:#1a365d; font-size:1rem; margin-bottom:8px; }
+        .scenario-table { width:100%; border-collapse:collapse; font-size:.82rem; margin-top:10px; }
+        .scenario-table th,.scenario-table td { text-align:left; padding:8px; border-bottom:1px solid #e2e8f0; }
+        .scenario-table th { color:#4a5568; }
+        .priority-list { padding-left:20px; line-height:1.6; }
+        @media(max-width:700px){
+            nav { height:auto; min-height:60px; padding:10px 16px; flex-wrap:wrap; gap:10px; }
+            .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+            .nav-actions{flex-wrap:wrap;}
+            .profile-strip{padding:12px 16px;}
+            .scenario-table{display:block;overflow-x:auto;white-space:nowrap;}
+        }
     </style>
 </head>
 <body>
@@ -192,7 +211,11 @@
         </a>
     </div>
     <div class="nav-actions">
-        <a href="/plan" class="btn-outline">← New Plan</a>
+        <a href="/privacy" class="btn-outline">Privacy</a>
+        <a href="/edit" class="btn-outline">Edit plan</a>
+        <a href="/plan" class="btn-outline">New plan</a>
+        <a href="/export" class="btn-outline">Export data</a>
+        <form method="post" action="/delete" onsubmit="return confirm('Delete this saved plan and chat history?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn-outline">Delete data</button></form>
         <button class="btn-primary" onclick="downloadPDF()" id="pdfBtn">
             <span id="pdfBtnText">⬇ Download PDF</span>
             <div class="pdf-spinner" id="pdfSpinner"></div>
@@ -202,14 +225,14 @@
 
 <div class="header-band">
     <h1>Your Personalized Financial Plan</h1>
-    <p>AI-generated roadmap tailored to your profile and the Indian market</p>
+    <p>Financial planning scenarios based on your entries and editable assumptions</p>
 </div>
 
 <div class="profile-strip">
     <div class="badge">Age <strong>{{ profile.age }} yrs</strong></div>
-    <div class="badge">Income <strong>₹{{ "{:,.0f}".format(profile.income) }}/mo</strong></div>
+    <div class="badge">Take-home income <strong>₹{{ "{:,.0f}".format(profile.cash_income) }}/mo</strong></div>
     <div class="badge">Expenses <strong>₹{{ "{:,.0f}".format(profile.expenses) }}/mo</strong></div>
-    <div class="badge">Monthly Savings <strong>₹{{ "{:,.0f}".format(profile.income - profile.expenses) }}/mo</strong></div>
+    <div class="badge">Monthly Surplus <strong>₹{{ "{:,.0f}".format(planning.monthly_surplus) }}/mo</strong></div>
     <div class="badge">Goal <strong>₹{{ "{:,.0f}".format(profile.goal_amount) }}</strong></div>
     <div class="badge">Risk <strong>{{ profile.risk }}</strong></div>
 </div>
@@ -217,49 +240,73 @@
 <div class="container" id="reportContent">
 
     <div class="card">
+        <div class="card-header"><div class="card-title"><div class="card-icon">📊</div> Financial health</div></div>
+        <div class="metric-grid">
+            <div class="metric"><small>Monthly surplus after loan payments</small><strong>₹{{ "{:,.0f}".format(planning.monthly_surplus) }}</strong></div>
+            <div class="metric"><small>Savings rate</small><strong>{{ planning.savings_rate_percent }}%</strong></div>
+            <div class="metric"><small>Loan payments / income</small><strong>{{ planning.emi_to_income_percent }}%</strong></div>
+            <div class="metric"><small>Net worth</small><strong>₹{{ "{:,.0f}".format(planning.net_worth) }}</strong></div>
+            <div class="metric"><small>Goal funding needed / month</small><strong>₹{{ "{:,.0f}".format(planning.required_goal_monthly) }}</strong></div>
+            <div class="metric"><small>Goals affordable in base scenario</small><strong>{{ 'Yes' if planning.goals_affordable else 'No' }}</strong></div>
+        </div>
+        <p class="note">Monthly surplus uses the take-home amount you entered, or gross salary if you left it blank. Net worth uses the savings, investments and debt entered.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div class="card-title"><div class="card-icon">🎯</div> Goals and scenarios</div></div>
+        {% for goal in planning.goals %}
+        <div class="goal-card">
+            <h3>{{ goal.name }} · {{ goal.years }} years</h3>
+            <p>Today's cost ₹{{ "{:,.0f}".format(goal.today_cost) }} · Inflation-adjusted target ₹{{ "{:,.0f}".format(goal.future_target) }} · Already saved ₹{{ "{:,.0f}".format(goal.saved) }} · Planned ₹{{ "{:,.0f}".format(goal.planned_monthly) }}/month</p>
+            <table class="scenario-table"><thead><tr><th>Scenario</th><th>Annual return</th><th>Needed / month</th><th>Projected value</th><th>Shortfall</th></tr></thead><tbody>
+            {% for label in ['low','base','high'] %}{% set scenario = goal.scenarios[label] %}
+            <tr><td>{{ label|capitalize }}</td><td>{{ planning.assumptions['return_' ~ label] }}%</td><td>₹{{ "{:,.0f}".format(scenario.required_monthly) }}</td><td>₹{{ "{:,.0f}".format(scenario.projected_value) }}</td><td>₹{{ "{:,.0f}".format(scenario.shortfall) }}</td></tr>
+            {% endfor %}</tbody></table>
+        </div>
+        {% endfor %}
+        <p class="note">Targets rise at {{ planning.assumptions.inflation }}% assumed inflation. Returns are hypothetical constant rates, before fees and taxes. Revisit the assumptions as circumstances change.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div class="card-title"><div class="card-icon">🧰</div> Emergency reserve, debt and protection</div></div>
+        <div class="metric-grid">
+            <div class="metric"><small>Emergency target</small><strong>₹{{ "{:,.0f}".format(planning.emergency_target) }}</strong></div>
+            <div class="metric"><small>Emergency gap</small><strong>₹{{ "{:,.0f}".format(planning.emergency_gap) }}</strong></div>
+            <div class="metric"><small>Reserve coverage</small><strong>{{ planning.emergency_coverage_months if planning.emergency_coverage_months is not none else '—' }} months</strong></div>
+            <div class="metric"><small>Life cover gap</small><strong>₹{{ "{:,.0f}".format(planning.life_gap) }}</strong></div>
+            <div class="metric"><small>Health cover gap</small><strong>₹{{ "{:,.0f}".format(planning.health_gap) }}</strong></div>
+            <div class="metric"><small>Debt payoff at current EMI</small><strong>{{ planning.debt_payoff.months ~ ' months' if planning.debt_payoff.months is not none else ('Payment too low' if planning.debt_payoff.status == 'payment_too_low' else 'Beyond 50 years') }}</strong></div>
+        </div>
+        <p class="note">Reserve target uses monthly expenses plus loan payments for the months you entered. Coverage targets are editable rules of thumb, not quotes or policy advice. Debt payoff assumes a fixed interest rate and payment.</p>
+    </div>
+
+    <div class="card"><div class="card-header"><div class="card-title"><div class="card-icon">✅</div> Next steps</div></div><ol class="priority-list">{% for item in planning.priorities %}<li>{{ item }}</li>{% endfor %}</ol></div>
+
+    <div class="card">
         <div class="card-header">
-            <div class="card-title"><div class="card-icon">📄</div> Financial Plan</div>
+            <div class="card-title"><div class="card-icon">📄</div> Advisor explanation</div>
         </div>
         <div class="plan-content" id="planContent"></div>
     </div>
 
     <div class="card">
         <div class="card-header">
-            <div class="card-title"><div class="card-icon">📈</div> Portfolio Growth Projection</div>
+            <div class="card-title"><div class="card-icon">📈</div> Primary goal projection</div>
         </div>
         <img class="graph-img" src="data:image/png;base64,{{ graph }}" alt="Growth chart">
-    </div>
-
-    <!-- Side-by-side: growth + allocation -->
-    <div class="charts-row">
-        <div class="card" style="margin-bottom:0">
-            <div class="card-header">
-                <div class="card-title"><div class="card-icon">🥧</div> Portfolio Allocation</div>
-            </div>
-            <img class="graph-img" src="data:image/png;base64,{{ alloc_chart }}" alt="Allocation chart">
-        </div>
-        <div class="card" style="margin-bottom:0">
-            <div class="card-header">
-                <div class="card-title"><div class="card-icon">📊</div> Allocation Breakdown</div>
-            </div>
-            {% for label, pct in allocation.items() %}
-            <div class="deduction-row">
-                <span class="d-label">{{ label }}</span>
-                <span class="d-val">{{ pct }}%</span>
-            </div>
-            {% endfor %}
-            <p style="font-size:0.75rem;color:#a0aec0;margin-top:12px;">Based on {{ profile.risk }} risk profile</p>
-        </div>
     </div>
 
     <!-- Tax Estimator -->
     <div class="card">
         <div class="card-header">
-            <div class="card-title"><div class="card-icon">🧾</div> Tax Estimator (FY 2024-25)</div>
+            <div class="card-title"><div class="card-icon">🧾</div> Tax Estimator (FY 2026–27)</div>
+            {% if tax %}
             <span class="regime-badge {{ 'regime-new' if tax.better_regime == 'New' else 'regime-old' }}">
                 {{ tax.better_regime }} Regime Better
             </span>
+            {% endif %}
         </div>
+        {% if tax %}
         <div class="tax-grid">
             <div class="tax-stat">
                 <div class="ts-label">Annual Income</div>
@@ -268,17 +315,17 @@
             <div class="tax-stat">
                 <div class="ts-label">Tax Saved via Deductions</div>
                 <div class="ts-value" style="color:#276749">₹{{ "{:,.0f}".format(tax.tax_saved_deductions) }}</div>
-                <div class="ts-sub">Old regime with 80C+80D+NPS</div>
+                <div class="ts-sub">Old regime, from entered contributions</div>
             </div>
             <div class="tax-stat">
                 <div class="ts-label">New Regime Tax</div>
                 <div class="ts-value">₹{{ "{:,.0f}".format(tax.new_regime_tax) }}</div>
-                <div class="ts-sub">No deductions applicable</div>
+                <div class="ts-sub">Includes ₹75,000 salary standard deduction</div>
             </div>
             <div class="tax-stat">
                 <div class="ts-label">Old Regime Tax (after deductions)</div>
                 <div class="ts-value">₹{{ "{:,.0f}".format(tax.old_regime_tax_after) }}</div>
-                <div class="ts-sub">With 80C + 80D + NPS</div>
+                <div class="ts-sub">Includes ₹50,000 salary standard deduction</div>
             </div>
         </div>
         <div style="background:#f7fafc;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;">
@@ -287,73 +334,10 @@
             <div class="deduction-row"><span class="d-label">Section 80D (Health Insurance)</span><span class="d-val">₹{{ "{:,.0f}".format(tax.deduction_80d) }}</span></div>
             <div class="deduction-row"><span class="d-label">Section 80CCD(1B) — NPS</span><span class="d-val">₹{{ "{:,.0f}".format(tax.deduction_nps) }}</span></div>
         </div>
-        <p style="font-size:0.75rem;color:#a0aec0;margin-top:12px;">* Estimates only. Consult a CA for accurate tax planning.</p>
-    </div>
-
-    <!-- Insurance Guidance -->
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title"><div class="card-icon">🛡️</div> Insurance Guidance</div>
-            {% if insurance.gaps %}
-            <span style="background:#fff5f5;color:#c53030;border:1px solid #fed7d7;border-radius:20px;padding:4px 12px;font-size:0.75rem;font-weight:700;">
-                {{ insurance.gaps|length }} Gap{{ 's' if insurance.gaps|length > 1 }}
-            </span>
-            {% else %}
-            <span style="background:#c6f6d5;color:#276749;border-radius:20px;padding:4px 12px;font-size:0.75rem;font-weight:700;">✓ Covered</span>
-            {% endif %}
-        </div>
-
-        <div class="ins-grid">
-            <div class="ins-stat">
-                <div class="is-label">Recommended Life Cover</div>
-                <div class="is-value">₹{{ "{:,.0f}".format(insurance.recommended_life_cover) }}</div>
-                <div class="is-sub">10x – 15x of annual income</div>
-            </div>
-            <div class="ins-stat">
-                <div class="is-label">Recommended Health Cover</div>
-                <div class="is-value">₹{{ "{:,.0f}".format(insurance.recommended_health_cover) }}</div>
-                <div class="is-sub">Base + ₹2L per dependent</div>
-            </div>
-            <div class="ins-stat">
-                <div class="is-label">Est. Term Plan Premium</div>
-                <div class="is-value">₹{{ "{:,.0f}".format(insurance.estimated_term_premium) }}/yr</div>
-                <div class="is-sub">~{{ "0.4" if profile.age < 40 else "0.6" }}% of sum assured</div>
-            </div>
-        </div>
-
-        {% if insurance.gaps %}
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.8rem;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Coverage Gaps</div>
-            {% for gap in insurance.gaps %}
-            <div class="gap-alert">⚠ {{ gap }}</div>
-            {% endfor %}
-        </div>
+        <p style="font-size:0.75rem;color:#718096;margin-top:12px;">Illustration for an Indian resident with salary income only, using entered 80C, self/family 80D and additional NPS amounts. Includes eligible rebates and 4% cess. Other deductions, special-rate income and tax credits are excluded. Confirm the result with a tax professional.</p>
+        {% else %}
+        <p>Tax comparison is unavailable above ₹50 lakh annual salary because surcharge and related relief require a fuller calculation.</p>
         {% endif %}
-
-        <div style="font-size:0.8rem;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Recommended Products</div>
-        <div class="ins-products">
-            {% if insurance.needs_life %}
-            <div class="ins-product">
-                <div class="ip-name">Term Life Insurance</div>
-                <div class="ip-desc">Pure protection, low premium. LIC Tech Term, HDFC Click2Protect, ICICI iProtect Smart.</div>
-            </div>
-            {% endif %}
-            {% if insurance.needs_health %}
-            <div class="ins-product">
-                <div class="ip-name">Health / Mediclaim</div>
-                <div class="ip-desc">Star Health, Niva Bupa, HDFC Ergo Optima. Min ₹5L cover recommended.</div>
-            </div>
-            {% endif %}
-            <div class="ins-product">
-                <div class="ip-name">Critical Illness Rider</div>
-                <div class="ip-desc">Covers 30+ illnesses. Add as rider to term plan or buy standalone.</div>
-            </div>
-            <div class="ins-product">
-                <div class="ip-name">Personal Accident Cover</div>
-                <div class="ip-desc">Low cost, high cover. Covers disability & accidental death. ~₹500/yr for ₹25L cover.</div>
-            </div>
-        </div>
-        <p style="font-size:0.75rem;color:#a0aec0;margin-top:14px;">* Coverage amounts are estimates based on income multiples. Consult an insurance advisor for exact needs.</p>
     </div>
 
 </div>
@@ -365,21 +349,44 @@
             <div class="card-title"><div class="card-icon">💬</div> Ask SmartFin</div>
             <span style="font-size:0.78rem;color:#718096;">Based on your profile above</span>
         </div>
+        {% if not ai_enabled %}<p class="note">AI chat is off. Add a free-tier Groq API key to enable explanations. The financial calculations above work without it.</p>{% endif %}
         <div class="chat-messages" id="chatMessages"></div>
+        {% if ai_enabled %}
         <div class="chat-input-row">
-            <input type="text" id="queryInput" placeholder="e.g. How much should I put in PPF vs ELSS?" onkeydown="if(event.key==='Enter') sendChat()">
+            <input type="text" id="queryInput" placeholder="e.g. How can I close my emergency reserve gap?" onkeydown="if(event.key==='Enter') sendChat()">
             <button id="sendBtn" onclick="sendChat()">Ask →</button>
         </div>
+        {% endif %}
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
+    function renderMarkdown(element, value) {
+        if (window.marked && window.DOMPurify) {
+            element.innerHTML = DOMPurify.sanitize(marked.parse(value), { USE_PROFILES: { html: true } });
+        } else {
+            element.textContent = value;
+        }
+    }
+
+    function appendMessage(role, content) {
+        const div = document.createElement("div");
+        div.className = role === "user" ? "msg user" : "msg bot";
+        if (role === "user") div.textContent = content;
+        else renderMarkdown(div, content);
+        document.getElementById("chatMessages").appendChild(div);
+        return div;
+    }
+
     // Render plan markdown as HTML
     const rawPlan = {{ response | tojson }};
-    document.getElementById("planContent").innerHTML = marked.parse(rawPlan);
+    renderMarkdown(document.getElementById("planContent"), rawPlan);
+    const savedMessages = {{ chat_history | tojson }};
+    savedMessages.forEach(item => appendMessage(item.role, item.content));
 
     // PDF Download
     async function downloadPDF() {
@@ -475,38 +482,35 @@
         const messages = document.getElementById("chatMessages");
         const btn = document.getElementById("sendBtn");
 
-        messages.innerHTML += `<div class="msg user">${escapeHtml(query)}</div>`;
+        appendMessage("user", query);
         input.value = "";
         btn.disabled = true;
 
-        const typingId = "t" + Date.now();
-        messages.innerHTML += `<div class="msg bot typing" id="${typingId}">SmartFin is thinking...</div>`;
+        const typing = appendMessage("assistant", "SmartFin is thinking...");
+        typing.classList.add("typing");
         messages.scrollTop = messages.scrollHeight;
 
         try {
             const res = await fetch("/chat", {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
+                headers: {"Content-Type": "application/json", "X-CSRF-Token": {{ csrf_token()|tojson }}},
                 body: JSON.stringify({ query })
             });
             const data = await res.json();
-            document.getElementById(typingId).remove();
-            const div = document.createElement("div");
-            div.className = "msg bot";
-            div.innerHTML = marked.parse(data.response);
-            messages.appendChild(div);
+            if (!res.ok) throw new Error(data.error || "Please try again.");
+            typing.remove();
+            appendMessage("assistant", data.response);
         } catch(e) {
-            document.getElementById(typingId).remove();
-            messages.innerHTML += `<div class="msg bot" style="color:#e53e3e">Error. Please try again.</div>`;
+            typing.remove();
+            const error = appendMessage("user", e.message || "Please try again.");
+            error.className = "msg bot";
+            error.style.color = "#e53e3e";
         }
 
         btn.disabled = false;
         messages.scrollTop = messages.scrollHeight;
     }
 
-    function escapeHtml(t) {
-        return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    }
 </script>
 </body>
 </html>
