@@ -2,6 +2,8 @@
 
 An open-source financial planning workspace for Indian salaried households. Enter income, expenses, debt, cover, and goals to get a transparent, editable scenario report. **No account or paid API is required.** Optional Groq and Tavily keys add AI explanation and search context.
 
+**[Try the live demo](https://smartfin-advisor.vercel.app/)** · [Read the evaluation](EVALUATION.md) · [View CI](https://github.com/Bitan-2125/Smartfin-Agent-Based-Financial-Advisor/actions/workflows/ci.yml)
+
 [![CI](https://github.com/Bitan-2125/Smartfin-Agent-Based-Financial-Advisor/actions/workflows/ci.yml/badge.svg)](https://github.com/Bitan-2125/Smartfin-Agent-Based-Financial-Advisor/actions/workflows/ci.yml) [![Engineering evaluation](https://img.shields.io/badge/engineering%20evaluation-100%2F100-2ea44f)](EVALUATION.md)
 
 ## What it does
@@ -25,6 +27,7 @@ CI runs both the evaluation and unit tests on each push and pull request. The un
 python evaluation.py
 python evaluation.py --markdown
 python -m unittest discover -s tests -v
+python smoke_live.py https://smartfin-advisor.vercel.app
 ```
 
 ## Run locally
@@ -68,7 +71,9 @@ The database may contain legacy account records from an earlier local version. A
 
 ## Deployment
 
-Vercel [supports a root-level Flask `app` instance](https://vercel.com/kb/guide/ship-a-flask-app-on-vercel), so `app.py` is the entry point. Set a stable `SECRET_KEY`, `SESSION_COOKIE_SECURE=true`, and a private persistent PostgreSQL `DATABASE_URL` in the Vercel project. **Do not use SQLite on Vercel:** its functions have [read-only deployment files and temporary scratch storage](https://vercel.com/docs/functions/runtimes), so saved plans would disappear. The PostgreSQL adapter has been exercised with SQLite-compatible unit tests but still needs an end-to-end test against a live hosted database before a Vercel release.
+The [live Vercel deployment](https://smartfin-advisor.vercel.app/) uses the Flask runtime, a free Neon PostgreSQL database in Singapore, a stable secret session key, and no paid AI service. `vercel.json` selects the Flask framework and Singapore region. `smoke_live.py` verified the production home page, anonymous planner, plan generation, report, export, and deletion with synthetic inputs; the test plan was deleted. GitHub is connected for automatic deployments from the default branch.
+
+For another Vercel deployment, set a stable `SECRET_KEY`, `SESSION_COOKIE_SECURE=true`, and a private persistent PostgreSQL `DATABASE_URL`. **Do not use SQLite on Vercel:** its functions have [read-only deployment files and temporary scratch storage](https://vercel.com/docs/functions/runtimes), so saved plans would disappear. Vercel [supports a root-level Flask `app` instance](https://vercel.com/kb/guide/ship-a-flask-app-on-vercel), which this repository exports from `app.py`.
 
 For the existing Render service, `Procfile` runs `gunicorn app:app`. Render's [free web filesystem is ephemeral](https://render.com/docs/free), so that service also needs persistent external PostgreSQL for saved plans.
 
